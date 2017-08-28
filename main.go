@@ -19,7 +19,10 @@ import (
 )
 
 func main() {
-	dotenv.Load() // load from .env file where scaffold is run
+	err := dotenv.Load() // load from .env file where scaffold is run
+	if err != nil {
+		panic(err)
+	}
 	render := getRenderer()
 	db := getDBConnection()
 	app := cli.NewApp()
@@ -59,6 +62,22 @@ func main() {
 			},
 		},
 		{
+			Name:    "edit",
+			Aliases: []string{"e"},
+			Usage:   "create a edit page from a table [tablename]",
+			Action: func(c *cli.Context) error {
+				return createEdit(c, render, db)
+			},
+		},
+		{
+			Name:    "list",
+			Aliases: []string{"l"},
+			Usage:   "create a list page from a table [tablename]",
+			Action: func(c *cli.Context) error {
+				return createList(c, render, db)
+			},
+		},
+		{
 			Name:    "migration",
 			Aliases: []string{"mi"},
 			Usage:   "perform schema migration",
@@ -72,7 +91,7 @@ func main() {
 
 func getRenderer() *render.Render {
 	r := render.New(render.Options{
-		Directory: "./server/models/templates",
+		Directory: "./blueprints",
 	})
 	return r
 }

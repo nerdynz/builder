@@ -121,14 +121,22 @@ func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
 }
 
 func createModel(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-model", "./server/models/")
+	return createSomething(c, r, db, "create-model", "./server/models/", ".go.tmp")
 }
 
 func createRest(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-rest", "./server/actions/")
+	return createSomething(c, r, db, "create-rest", "./server/actions/", ".go.tmp")
 }
 
-func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string) error {
+func createList(c *cli.Context, r *render.Render, db *runner.DB) error {
+	return createSomething(c, r, db, "create-list", "./admin/client/views/:TableNameTitle/", "List.vue.tmp")
+}
+
+func createEdit(c *cli.Context, r *render.Render, db *runner.DB) error {
+	return createSomething(c, r, db, "create-edit", "./admin/client/views/:TableNameTitle/", "edit.vue.tmp")
+}
+
+func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
 	bucket := newViewBucket()
 	args := c.Args()
 
@@ -142,9 +150,7 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	// populate variables
 	tableName := bucket.getStr("TableName")
 	tableNameTitle := snaker.SnakeToCamel(tableName)
-	letters := strings.Split(tableNameTitle, "")
-	letters[0] = strings.ToLower(letters[0])
-	tableNameCamel := strings.Join(letters, "")
+	tableNameCamel := camelCase(tableNameTitle)
 	tableID := tableName + "_id"
 
 	tnJnt := strings.Join(strings.Split(tableName, "_"), " ")
@@ -158,7 +164,7 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	columns := []*ColumnInfo{}
 	err := db.Select("column_name, data_type, is_nullable").
 		From("information_schema.columns").
-		Where("table_schema = $1 and table_name = $2", "public", tableName).
+		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName).
 		QueryStructs(&columns)
 	if err != nil {
 		return cli.NewExitError("error 10: "+err.Error(), 1)
@@ -181,12 +187,14 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	bucket.add("ColumnsDBStrings", template.HTML(colsDBConcat))
 	bucket.add("ColumnsRecordPrefixedStrings", colsRecordPrefixedConcat)
 
-	//
-	fullpath := path + tableNameCamel + ".go.tmp"
-	// fullpathNoTemp := path + tableNameCamel + ".go"
+	folderPath := strings.Replace(path, ":TableNameTitle", tableNameTitle, 1)
+	err = os.MkdirAll(folderPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	fullpath := folderPath + tableNameCamel + ext
 
 	fo, _ := os.Create(fullpath)
-
 	template := r.TemplateLookup(tmpl)
 	wr := bufio.NewWriter(fo)
 	err = template.Execute(wr, bucket.Data)
@@ -216,8 +224,15 @@ func (colInfo *ColumnInfo) IsNullField() bool {
 	return colInfo.IsNullable == "YES"
 }
 
+func (colInfo *ColumnInfo) IsDate() bool {
+	return strings.HasPrefix(colInfo.ColumnName, "Date")
+}
+
 func (colInfo *ColumnInfo) ColumnNameTitle() string {
 	return snaker.SnakeToCamel(colInfo.ColumnName)
+}
+func (colInfo *ColumnInfo) ColumnNameCamel() string {
+	return camelCase(colInfo.ColumnNameTitle())
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
@@ -250,4 +265,11 @@ func migrationFromTemplate(r *render.Render, templateName string, file *file.Fil
 		return err
 	}
 	return nil
+}
+
+func camelCase(str string) string {
+	letters := strings.Split(str, "")
+	letters[0] = strings.ToLower(letters[0])
+	str = strings.Join(letters, "")
+	return str
 }
