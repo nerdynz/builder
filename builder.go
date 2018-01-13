@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/jaybeecave/render"
+	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
 	_ "github.com/mattes/migrate/driver/postgres" //for migrations
 	"github.com/mattes/migrate/file"
@@ -129,11 +130,11 @@ func createRest(c *cli.Context, r *render.Render, db *runner.DB) error {
 }
 
 func createList(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-list", "./admin/client/views/:TableNameTitle/", "List.vue.tmp")
+	return createSomething(c, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", "index.vue.tmp")
 }
 
 func createEdit(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-edit", "./admin/client/views/:TableNameTitle/", "edit.vue.tmp")
+	return createSomething(c, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/", "_:TableNameCamelID.vue.tmp")
 }
 
 func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
@@ -151,14 +152,20 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	tableName := bucket.getStr("TableName")
 	tableNameTitle := snaker.SnakeToCamel(tableName)
 	tableNameCamel := camelCase(tableNameTitle)
+	tableNameLower := strings.ToLower(tableName)
 	tableID := tableName + "_id"
-
-	tnJnt := strings.Join(strings.Split(tableName, "_"), " ")
+	tnJnt := strings.Join(strings.Split(tableNameTitle, "_"), " ")
 
 	bucket.add("TableNameSpaces", tnJnt)
 	bucket.add("TableNameTitle", tableNameTitle)
 	bucket.add("TableNameCamel", tableNameCamel)
+	bucket.add("TableNameLower", tableNameLower)
+	bucket.add("TableNamePlural", inflection.Plural(tableNameLower))
+	bucket.add("TableNamePluralTitle", inflection.Plural(tableNameTitle))
+	bucket.add("TableNamePluralCamel", inflection.Plural(tableNameCamel))
 	bucket.add("TableID", tableID)
+	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
+	bucket.add("TableIDCamel", camelCase(snaker.SnakeToCamel(tableID)))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
@@ -187,12 +194,13 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	bucket.add("ColumnsDBStrings", template.HTML(colsDBConcat))
 	bucket.add("ColumnsRecordPrefixedStrings", colsRecordPrefixedConcat)
 
-	folderPath := strings.Replace(path, ":TableNameTitle", tableNameTitle, 1)
+	folderPath := strings.Replace(path, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	fullpath := folderPath + tableNameCamel + ext
+	ext = strings.Replace(ext, ":TableNameCamelID", camelCase(snaker.SnakeToCamel(tableID)), -1)
+	fullpath := folderPath + ext
 
 	fo, _ := os.Create(fullpath)
 	template := r.TemplateLookup(tmpl)
@@ -220,6 +228,17 @@ type ColumnInfo struct {
 	IsNullable string `db:"is_nullable"`
 }
 
+func (colInfo *ColumnInfo) Label() string {
+	colName := snaker.SnakeToCamel(colInfo.ColumnName)
+	colName = strings.Join(strings.Split(colName, "_"), " ")
+	return colName
+}
+
+func (colInfo *ColumnInfo) Name() string {
+	colName := snaker.SnakeToCamel(colInfo.ColumnName)
+	return colName
+}
+
 func (colInfo *ColumnInfo) IsNullField() bool {
 	return colInfo.IsNullable == "YES"
 }
@@ -228,15 +247,26 @@ func (colInfo *ColumnInfo) IsDate() bool {
 	return strings.HasPrefix(colInfo.ColumnName, "Date")
 }
 
+func (colInfo *ColumnInfo) IsDefault() bool {
+	if colInfo.IsDate() {
+		return false
+	}
+	return true
+}
+
 func (colInfo *ColumnInfo) ColumnNameTitle() string {
 	return snaker.SnakeToCamel(colInfo.ColumnName)
 }
+
 func (colInfo *ColumnInfo) ColumnNameCamel() string {
 	return camelCase(colInfo.ColumnNameTitle())
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
 	if colInfo.DataType == "text" {
+		return "string"
+	}
+	if colInfo.DataType == "uuid" {
 		return "string"
 	}
 	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
@@ -247,6 +277,28 @@ func (colInfo *ColumnInfo) ColumnType() string {
 	}
 	if colInfo.DataType == "timestamp with time zone" {
 		return "time.Time"
+	}
+	return ""
+}
+
+func (colInfo *ColumnInfo) InputControlType() string {
+	if colInfo.DataType == "text" {
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "html") {
+			return "richtext"
+		}
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "text") {
+			return "textarea"
+		}
+		return "text"
+	}
+	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
+		return "number"
+	}
+	if colInfo.DataType == "boolean" {
+		return "checkbox"
+	}
+	if colInfo.DataType == "timestamp with time zone" {
+		return "datetime"
 	}
 	return ""
 }
