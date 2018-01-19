@@ -122,11 +122,11 @@ func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
 }
 
 func createModel(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-model", "./server/models/", ".go.tmp")
+	return createSomething(c, r, db, "create-model", "./server/models/", ":TableNameCamel.go.tmp")
 }
 
 func createRest(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-rest", "./server/actions/", ".go.tmp")
+	return createSomething(c, r, db, "create-rest", "./server/actions/", ":TableNameCamelPlural.go.tmp")
 }
 
 func createList(c *cli.Context, r *render.Render, db *runner.DB) error {
@@ -166,6 +166,7 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	bucket.add("TableID", tableID)
 	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
 	bucket.add("TableIDCamel", camelCase(snaker.SnakeToCamel(tableID)))
+	bucket.add("TableIDCamelWithRecord", "record."+camelCase(snaker.SnakeToCamel(tableID)))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
@@ -199,6 +200,8 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	if err != nil {
 		return err
 	}
+	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
+	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
 	ext = strings.Replace(ext, ":TableNameCamelID", camelCase(snaker.SnakeToCamel(tableID)), -1)
 	fullpath := folderPath + ext
 
@@ -229,8 +232,8 @@ type ColumnInfo struct {
 }
 
 func (colInfo *ColumnInfo) Label() string {
-	colName := snaker.SnakeToCamel(colInfo.ColumnName)
-	colName = strings.Join(strings.Split(colName, "_"), " ")
+	colName := strings.Join(strings.Split(colInfo.ColumnName, "_"), " ")
+	colName = strings.Title(colName)
 	return colName
 }
 
@@ -283,6 +286,10 @@ func (colInfo *ColumnInfo) ColumnType() string {
 
 func (colInfo *ColumnInfo) InputControlType() string {
 	if colInfo.DataType == "text" {
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "image") ||
+			strings.Contains(strings.ToLower(colInfo.ColumnName), "picture") {
+			return "image"
+		}
 		if strings.Contains(strings.ToLower(colInfo.ColumnName), "html") {
 			return "richtext"
 		}
