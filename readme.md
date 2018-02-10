@@ -30,5 +30,5 @@ Take a look at blueprints for an example. Currently the blueprints are very much
 ###You can change the blueprints to whatever you want, just follow the naming convention
 
 ## Installation
-`go get https://github.com/nerdynz/builder.git`
+`go get github.com/nerdynz/builder`
 
