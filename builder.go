@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"net/http"
+	"os/exec"
 
 	"bytes"
 
@@ -221,7 +222,11 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	if err := fo.Close(); err != nil {
 		return cli.NewExitError("error 30: "+err.Error(), 1)
 	}
-	// exec.Command("bcomp", fullpathNoTemp, fullpath)
+	fullpathNoTemp := strings.Replace(fullpath, ".tmp", "", 1)
+	err = exec.Command("bcomp", fullpath, fullpathNoTemp).Run()
+	if err != nil {
+		return cli.NewExitError("error 40: "+err.Error(), 1)
+	}
 	return nil
 }
 

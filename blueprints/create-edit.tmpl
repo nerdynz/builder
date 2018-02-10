@@ -1,0 +1,125 @@
+<template>
+  <div v-if="record">
+    <div class="columns is-multiline">{{ range $i, $col := .Columns}}{{ if not (eq $col.InputControlType "") }}
+      <div class="column is-12">
+        {{ if eq $col.InputControlType "text" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="text" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "textarea" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="textarea" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "datetime" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="datetime" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "number" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="number" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "richtext" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
+          <quill name="{{$col.Name}}" v-model="record.{{$col.Name}}"></quill>
+        </field>{{ end }}{{ if eq $col.InputControlType "image" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
+          <image-upload name="{{$col.Name}}" v-model="record.{{$col.Name}}"></image-upload>
+        </field>{{ end }}
+      </div>{{ end }}{{end}}
+    </div>
+  </div>
+</template>
+
+<script>
+import {mapGetters, mapActions} from 'vuex'
+
+export default {
+  components: {
+  },
+  inject: {
+    $validator: '$validator'
+  },
+  computed: {
+    isNewRecord () {
+      if (this.routeID <= 0) {
+        return true
+      }
+      return false
+    },
+    routeID () {
+      return this.$route.params['{{.TableIDCamel}}'] ? parseInt(this.$route.params['{{.TableIDCamel}}']) : 0
+    },
+    buttons () {
+      return [
+        {text: 'Save', alignment: 'left', kind: 'success', click: this.save, isDisabled: this.$validator.errors.any()},
+        {text: 'Save & Return', alignment: 'left', kind: 'success', click: () => { this.save(true) }, isDisabled: this.$validator.errors.any()},
+        {text: 'Back', alignment: 'left', kind: 'text', click: this.back},
+        {text: 'Delete', alignment: 'right', kind: 'danger', click: this.remove}
+      ]
+    },
+    ...mapGetters({
+      user: 'app/user'
+    })
+  },
+  methods: {
+    ...mapActions({
+      setButtons: 'app/setButtons'
+    }),
+
+    loadRecord () {
+      let loader = this.$loading.open()
+      if (this.isNewRecord) {
+        this.record = this.$service.new('{{.TableNameCamel}}')
+        loader.close()
+      } else {
+        this.$service.retrieve('{{.TableNameCamel}}', this.routeID).then((newRecord) => {
+          this.record = newRecord
+          loader.close()
+        })
+      }
+    },
+
+    save (goBack) {
+      if (this.errors.any()) {
+        this.$toast.open({title: 'Failed to save!', message: 'Please double check the fields highlighted.', type: 'is-danger'})
+        return
+      }
+
+      this.setButtons(this.buttons)
+      this.$service.save('{{.TableNameCamel}}', this.record).then((newRecord) => {
+        this.record = newRecord
+        this.$toast.open({message: `{{.TableNameSpaces}} saved successfully`, type: 'is-success'})
+        if (goBack === true) {
+          this.back()
+          return
+        } else if (this.routeID === 0) {
+          this.$router.replace({name: '{{.TableNameLower}}-{{.TableNameLower}}ID', params: { '{{.TableIDCamel}}': newRecord['{{.TableIDCamel}}'] }})
+        }
+        this.setButtons(this.buttons)
+      })
+    },
+
+    back (ev) {
+      this.$router.go(-1)
+    },
+
+    remove () {
+      this.$service.remove('{{.TableNameCamel}}', this.record).then(() => {
+        this.$toast.open({message: `${{.TableNameSpaces}} removed`, type: 'is-danger'})
+        this.back()
+      })
+    }
+  },
+  watch: {
+    'errors.items' () {
+      this.setButtons(this.buttons)
+    }
+  },
+  data () {
+    return {
+      record: null
+    }
+  },
+
+  beforeCreate () {
+  },
+  created () {
+    this.loadRecord()
+    this.setButtons(this.buttons)
+  },
+  beforeMount () {
+  },
+  mounted () {
+  },
+  beforeUpdate () {
+  },
+  updated () {
+  },
+  beforeDestroy () {
+  },
+  destroyed () {
+  }
+}
+</script>

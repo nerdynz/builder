@@ -26,8 +26,8 @@ func main() {
 	render := getRenderer()
 	db := getDBConnection()
 	app := cli.NewApp()
-	app.Name = "scaffold"
-	app.Usage = "generate models & migrations using dat"
+	app.Name = "builder"
+	app.Usage = "code generation"
 	app.Commands = []cli.Command{
 		{
 			Name:    "table",

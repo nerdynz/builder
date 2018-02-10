@@ -1,0 +1,146 @@
+<template>
+  <list-placeholder @create="create" :showing="hasData" :loading="isLoading">
+    <b-table ref="{{.TableNameCamel}}List" datakey="{{.TableNameCamel}}ID" :data="pagedData.records"
+       :striped="true" :mobile-cards="true" 
+       :paginated="true" :per-page="pagedData.limit" 
+       :backend-pagination="true"
+       :backend-sorting="true"
+       :total="pagedData.total"
+       :default-sort="[pagedData.sort, pagedData.direction]"
+       @sort="sort"
+       @page-change="pageChange"
+       >
+      <template slot-scope="props">
+        <b-table-column label="">
+          <div class="field has-addons">
+            <p class="control -u-mb">
+              <button  class="button is-small" @click="edit(props.row, props.index)">
+                Edit
+              </button>
+            </p>
+          </div>
+        </b-table-column>{{range $index, $column := .Columns}}
+        <b-table-column field="{{$column.ColumnNameTitle}}" label="{{$column.ColumnNameTitle}}">
+          {{ if $column.IsDate }}{{"{{"}} fmtDate(props.row.{{$column.ColumnNameTitle}}) {{"}}"}}{{end}}{{ if $column.IsDefault }}{{"{{"}} props.row.{{$column.ColumnNameTitle}} {{"}}"}}{{end}}
+        </b-table-column>{{end}}
+      </template>
+    </b-table>
+  </list-placeholder>
+</template>
+
+<script>
+import ListPlaceholder from '~/components/layout/ListPlaceholder'
+import {fmtDate} from '~/helpers/format'
+import {mapActions} from 'vuex'
+
+export default {
+  components: {
+    ListPlaceholder
+  },
+  computed: {
+    hasData () {
+      if (this.pagedData && this.pagedData.records && this.pagedData.records.length > 0) {
+        return true
+      }
+      return false
+    },
+    buttons () {
+      return [
+        {text: 'Add New', alignment: 'left', kind: 'success', click: this.create}
+      ]
+    }
+  },
+  methods: {
+    fmtDate,
+
+    ...mapActions({
+      setButtons: 'app/setButtons'
+    }),
+
+    sort (field, direction) {
+      let pagedData = this.pagedData
+      this.load(field, direction, pagedData.limit, pagedData.pageNum)
+    },
+
+    pageChange (page) {
+      let pagedData = this.pagedData
+      this.load(pagedData.sort, pagedData.direction, pagedData.limit, page)
+    },
+
+    load (sort, direction, limit, pageNum) {
+      this.isLoading = true
+      this.$service.paged('{{.TableNameCamel}}', sort, direction, limit, pageNum).then((data) => {
+        this.pagedData = data
+        this.isLoading = false
+      })
+    },
+    create () {
+      this.$router.push({ name: '{{.TableNameCamel}}-{{.TableIDCamel}}', params: { '{{.TableIDCamel}}': 0 } })
+    },
+
+    edit (record) {
+      this.$router.push({ name: '{{.TableNameCamel}}-{{.TableIDCamel}}', params: { '{{.TableIDCamel}}': record['{{.TableIDCamel}}'] } })
+    }
+  },
+  created () {
+    this.load('DateModified', 'desc', 50, 1)
+    this.setButtons(this.buttons)
+  },
+  data () {
+    return {
+      isLoading: true,
+      pagedData: {
+        sort: '',
+        direction: 'desc',
+        records: [],
+        total: 0,
+        pageNum: 1,
+        limit: 50
+      }
+    }
+  }
+}
+</script>
+
+<script>
+  //MENU
+// import lazyLoading from './lazyLoading'
+
+export default {
+  path: '/{{.TableNameLower}}',
+  meta: {
+    breadcrumb: true,
+    label: '{{.TableNameTitle}}',
+    icon: 'fa-circle-o',
+    expanded: false
+    // role: 'Administrator'
+  },
+  // component: lazyLoading('{{.TableNameLower}}', true),
+
+  children: [
+    {
+      name: '{{.TableNameCamel}}',
+      path: '',
+      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}List'),
+      routeOnly: true,
+      meta: {
+        title: '{{.TableNameCamel}}',
+        label: '{{.TableNameCamel}}'
+      }
+    },
+    {
+      name: 'Create {{.TableNameTitle}}',
+      path: 'create',
+      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}Edit'),
+      routeOnly: true
+    },
+    {
+      name: 'Edit {{.TableNameTitle}}',
+      path: 'edit/:{{.TableNameCamel}}ID',
+      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}Edit'),
+      routeOnly: true
+    }
+  ]
+}
+
+</script>

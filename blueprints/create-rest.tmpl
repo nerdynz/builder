@@ -1,0 +1,119 @@
+package actions
+
+import (
+)
+
+func New{{.TableNameTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}} := {{.TableNameCamel}}Helper.New()
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+func Create{{.TableNameTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.NewFromRequest(ctx.Req)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to create {{.TableNameCamel}} record", nil)
+		return
+	}
+	err = {{.TableNameCamel}}Helper.Save({{.TableNameCamel}})
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to create {{.TableNameCamel}} record", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+func Retrieve{{.TableNameTitle}}(ctx *flow.Context) {
+	if ctx.URLParam("{{.TableNameCamel}}ID") == "" {
+		Retrieve{{.TableNamePluralTitle}}(ctx)
+		return
+	}
+
+	//get the {{.TableNameCamel}}ID from the request
+	{{.TableNameCamel}}ID := ctx.URLIntParamWithDefault("{{.TableNameCamel}}ID", -1)
+	if {{.TableNameCamel}}ID == -1 {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid {{.TableNameCamel}}ID", nil)
+		return
+	}
+
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.Load({{.TableNameCamel}}ID)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to retrieve {{.TableNameTitle}} record", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+func Retrieve{{.TableNamePluralTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNamePluralCamel}}, err := {{.TableNameCamel}}Helper.All()
+
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to retrieve {{.TableNameTitle}} records", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNamePluralCamel}})
+}
+
+func Paged{{.TableNamePluralTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	pageNum := ctx.URLIntParamWithDefault("pagenum", 1)
+	limit := ctx.URLIntParamWithDefault("limit", 10)
+	sort := ctx.URLParam("sort")
+	direction := ctx.URLParam("direction")
+
+	data, err := {{.TableNameCamel}}Helper.PagedBy(pageNum, limit, sort, direction)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Unabled to get paged {{.TableNameTitle}} data", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, data)
+}
+
+func Update{{.TableNameTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.LoadAndUpdateFromRequest(ctx.Req)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to load {{.TableNameTitle}} record for update", err)
+		return
+	}
+
+	// save and validate
+	err = {{.TableNameCamel}}Helper.Save({{.TableNameCamel}})
+	// other type of error
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to save updated {{.TableNameTitle}} record", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+func Delete{{.TableNameTitle}}(ctx *flow.Context) {
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	//get the {{.TableNameCamel}}ID from the request
+	{{.TableNameCamel}}ID := ctx.URLIntParamWithDefault("{{.TableNameCamel}}ID", -1)
+	if {{.TableNameCamel}}ID == -1 {
+		ctx.JSON(http.StatusInternalServerError, "Invalid {{.TableNameTitle}}ID for remove")
+		return
+	}
+
+	isDeleted, err := {{.TableNameCamel}}Helper.Delete({{.TableNameCamel}}ID)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError,"Failed to remove the {{.TableNameTitle}} record", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, isDeleted)
+}
+
+	r.GET("/:api/v1/{{.TableNameLower}}/new", actions.New{{.TableNameTitle}}, security.Disallow)
+	r.PST("/:api/v1/{{.TableNameLower}}/create", actions.Create{{.TableNameTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/retrieve", actions.Retrieve{{.TableNamePluralTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/retrieve/:{{.TableNameCamel}}ID", actions.Retrieve{{.TableNameTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.Paged{{.TableNamePluralTitle}}, security.Disallow)
+	r.PUT("/:api/v1/{{.TableNameLower}}/update/:{{.TableNameCamel}}ID", actions.Update{{.TableNameTitle}}, security.Disallow)
+	r.DEL("/:api/v1/{{.TableNameLower}}/delete/:{{.TableNameCamel}}ID", actions.Delete{{.TableNameTitle}}, security.Disallow)
