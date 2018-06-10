@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	dat "gopkg.in/mgutz/dat.v1"
-	runner "gopkg.in/mgutz/dat.v1/sqlx-runner"
+	dat "github.com/nerdynz/dat"
+	runner "github.com/nerdynz/dat/sqlx-runner"
 
 	"github.com/jaybeecave/render"
 	dotenv "github.com/joho/godotenv"

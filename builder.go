@@ -16,15 +16,14 @@ import (
 	"github.com/jaybeecave/render"
 	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
-	_ "github.com/mattes/migrate/driver/postgres" //for migrations
-	"github.com/mattes/migrate/file"
-	"github.com/mattes/migrate/migrate"
+	runner "github.com/nerdynz/dat/sqlx-runner"
 	"github.com/urfave/cli"
+	"gopkg.in/mattes/migrate.v1/file"
+	"gopkg.in/mattes/migrate.v1/migrate"
 
 	"strings"
 
 	"github.com/serenize/snaker"
-	runner "gopkg.in/mgutz/dat.v1/sqlx-runner"
 )
 
 type description struct {
