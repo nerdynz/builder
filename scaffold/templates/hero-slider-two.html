@@ -1,0 +1,42 @@
+<div class="hero is-small u-fw">
+  <div class="hero-body u-cf u-fw -u-plr">
+    <div class="hero-slick u-fw">
+      {{ if and (hasValue .HeroPicture) ( hasValue .HeroPictureTwo) }}
+      <div>
+        <div class="columns -u-m">
+          <div class="column is-half">
+            {{ image .HeroPicture "" "hero-image"}}
+          </div>
+          <div class="column is-half">
+            {{ image .HeroPictureTwo "" "hero-image"}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+      {{ if and (hasValue .HeroPictureThree) ( hasValue .HeroPictureFour)}}
+      <div>
+        <div class="columns -u-m">
+          <div class="column is-half">
+            {{ image .HeroPictureThree "" "hero-image"}}
+          </div>
+          <div class="column is-half">
+            {{ image .HeroPictureFour "" "hero-image"}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+      {{ if and (hasValue .HeroPictureFive) ( hasValue .HeroPictureSix)}}
+      <div>
+        <div class="columns -u-m">
+          <div class="column is-half">
+            {{ image .HeroPictureFive "" "hero-image"}}
+          </div>
+          <div class="column is-half">
+            {{ image .HeroPictureSix "" "hero-image"}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+</div>

@@ -1,10 +1,10 @@
 <template>
   <div v-if="record">
-    <div class="columns is-multiline">{{ range $i, $col := .Columns}}{{ if not (eq $col.InputControlType "") }}
+    <div class="columns is-multiline">{{ range $i, $col := .Columns}}{{ if not (eq $col.ControlType "") }}
       <div class="column is-12">
-        {{ if eq $col.InputControlType "text" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="text" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "textarea" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="textarea" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "datetime" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="datetime" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "number" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="number" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.InputControlType "richtext" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
-          <quill name="{{$col.Name}}" v-model="record.{{$col.Name}}"></quill>
-        </field>{{ end }}{{ if eq $col.InputControlType "image" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
+        {{ if eq $col.ControlType "text" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="text" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.ControlType "textarea" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="textarea" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.ControlType "datetime" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="datetime" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.ControlType "number" }}<control label="{{$col.Label}}" name="{{$col.Name}}" type="number" v-model="record.{{$col.Name}}" x-validate="'required'"/>{{ end }}{{ if eq $col.ControlType "richtext" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
+          <rich-text name="{{$col.Name}}" v-model="record.{{$col.Name}}"></rich-text>
+        </field>{{ end }}{{ if eq $col.ControlType "image" }}<field for="{{$col.Name}}" label="{{$col.Label}}">
           <image-upload name="{{$col.Name}}" v-model="record.{{$col.Name}}"></image-upload>
         </field>{{ end }}
       </div>{{ end }}{{end}}
@@ -12,7 +12,7 @@
   </div>
 </template>
 
-<script>
+{{.LTStr}}script{{.GTStr}}
 import {mapGetters, mapActions} from 'vuex'
 
 export default {
@@ -29,7 +29,7 @@ export default {
       return false
     },
     routeID () {
-      return this.$route.params['{{.TableIDCamel}}'] ? parseInt(this.$route.params['{{.TableIDCamel}}']) : 0
+      return this.$route.params.ID ? parseInt(this.$route.params.ID) : 0
     },
     buttons () {
       return [
@@ -75,7 +75,7 @@ export default {
           this.back()
           return
         } else if (this.routeID === 0) {
-          this.$router.replace({name: '{{.TableNameLower}}-{{.TableNameLower}}ID', params: { '{{.TableIDCamel}}': newRecord['{{.TableIDCamel}}'] }})
+          this.$router.replace({name: '{{.TableNameLower}}-{{.TableNameLower}}ID', params: { '{{.TableIDCamel}}': newRecord['{{.TableIDTitle}}'] }})
         }
         this.setButtons(this.buttons)
       })
@@ -87,7 +87,7 @@ export default {
 
     remove () {
       this.$service.remove('{{.TableNameCamel}}', this.record).then(() => {
-        this.$toast.open({message: `${{.TableNameSpaces}} removed`, type: 'is-danger'})
+        this.$toast.open({message: `{{.TableNameSpaces}} removed`, type: 'is-danger'})
         this.back()
       })
     }
@@ -122,4 +122,4 @@ export default {
   destroyed () {
   }
 }
-</script>
+{{.LTStr}}/script{{.GTStr}}

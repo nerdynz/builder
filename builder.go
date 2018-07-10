@@ -13,15 +13,16 @@ import (
 
 	"os"
 
+	"strings"
+
 	"github.com/jaybeecave/render"
 	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
 	runner "github.com/nerdynz/dat/sqlx-runner"
 	"github.com/urfave/cli"
+	_ "gopkg.in/mattes/migrate.v1/driver/postgres"
 	"gopkg.in/mattes/migrate.v1/file"
 	"gopkg.in/mattes/migrate.v1/migrate"
-
-	"strings"
 
 	"github.com/serenize/snaker"
 )
@@ -318,6 +319,10 @@ func migrationFromTemplate(r *render.Render, templateName string, file *file.Fil
 	template := r.TemplateLookup(templateName)
 	buffer := bytes.NewBuffer(file.Content)
 	wr := bufio.NewWriter(buffer)
+	if template == nil {
+		return errors.New("couldn't find the correct template")
+	}
+
 	err := template.Execute(wr, data)
 	if err != nil {
 		return err

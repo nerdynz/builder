@@ -54,8 +54,9 @@ func new{{.TableNameTitle}}Helper(db *runner.DB, redis *redis.Client, validate *
   fieldnames := []string{"{{.TableID}}", {{.ColumnsDBStrings}}}
 	sort.Strings(fieldnames) // sort it makes searching it work correctly
 	helper.fieldNames = fieldnames
-	helper.orderBy = "date_created, date_modified"
-
+	{{if .HasSort}}
+	helper.orderBy = "sort_position, date_created, date_modified"{{else}}
+	helper.orderBy = "date_created, date_modified"{{end}}
 	return helper
 }
 

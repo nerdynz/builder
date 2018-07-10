@@ -1,0 +1,33 @@
+{{$work := .}}
+<section class="building-block container browser-example animate-300 u-fw">
+  <div class="container u-rel">
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="iphone-speaker">
+        </div>
+        {{image "spacer-9by16.png" "" "spacer-9-16" }}
+        <div class="image-scroller">
+          {{image $work.MobilePicture $work.Title "browser-image" }}
+        </div>
+        <div class="iphone-button">
+        </div>
+      </div>
+    </div>
+    <div class="browser">
+      <div class="browser-inner">
+        <div class="top-bar">
+          <div class="circle is-red">
+          </div>
+          <div class="circle is-yellow">
+          </div>
+          <div class="circle is-green">
+          </div>
+        </div>
+        {{image "spacer-16by10.png" "" "spacer-16-10" }}
+        <div class="image-scroller">
+          {{image $work.LeadInPicture $work.Title "browser-image" }}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

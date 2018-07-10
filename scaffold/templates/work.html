@@ -1,0 +1,27 @@
+<section class="animate-500 container section">
+  <div class="columns is-multiline">
+    <div class="column is-7 is-offset-5">
+      <h1 class="title is-2">{{.Work.Title}}</h1>
+    </div>
+    <div class="column is-5">
+      <div class="u-mb">
+        <h5 class="title u-mb">Client</h5>
+        <h5 class="subtitle -u-m">{{.Work.Client}}</h5>
+      </div>
+      <div class="u-mb">
+        <h5 class="title u-mb">Type of Project</h5>
+        <h5 class="subtitle -u-m">{{.Work.Type}}</h5>
+      </div>
+    </div>
+    <div class="column is-7">
+      {{ htmlsafe .Work.DescriptionHTML}}
+    </div>
+      {{if hasValue .Work.URL }}
+        <a class="is-block u-plr link " target="_externalwork" href="{{.Work.URL}}"><i class="fa fa-external-link fa-lg"></i>&nbsp;<span class="u-u">Visit Website</span></a>
+      {{end}}
+    {{ template "hero-slider-two" .Work}}
+    <div class="column is-6 is-offset-6">
+      {{ htmlsafe .Work.DescriptionHTMLTwo}}
+    </div>
+  </div>
+</section>

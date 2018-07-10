@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  {{if hasValue .Page.SEOTitle}}
+    <title>{{.Page.SEOTitle}} - [[[SITENAME]]]</title>
+  {{else}}
+    <title>{{.Page.Title}} - [[[SITENAME]]]</title>
+  {{end}}
+	<meta name="description" content="{{ .Page.Summary}}" />
+	<meta name="keywords" content="{{ .Page.Keywords}}" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" sizes="57x57" href="/icons/apple-icon-57x57.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/icons/apple-icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/icons/apple-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/icons/apple-icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/icons/apple-icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/icons/apple-icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-icon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192"  href="/icons/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+  <link rel="manifest" href="/icons/manifest.json">
+  <meta name="msapplication-TileColor" content="#070707">
+  <meta name="msapplication-TileImage" content="/icons/ms-icon-144x144.png">
+  <meta name="theme-color" content="#070707">
+  <style >
+    .animate, .animate-100, .animate-200, .animate-300, .animate-400, .animate-500, .animate-600, .animate-700, .animate-800 {
+      opacity: 0;
+    }
+  </style>
+</head>
+<body id="{{current}}-page" class="animate-200">
+  {{partial "scripts" }}
+  {{partial "header" }}
+  <main id="pjax" class="body ">
+    {{yield}}
+  </main>
+  {{partial "footer" }}
+  {{javascriptAsync "instafeed.min"}}
+  {{javascriptAsync "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min"}}
+  {{javascriptAsync "https://cdnjs.cloudflare.com/ajax/libs/jquery-backstretch/2.0.4/jquery.backstretch.min"}}
+  {{javascriptAsync "https://maps.googleapis.com/maps/api/js?key=AIzaSyDzdXqaPE9v1HjFymV9XiJpLfuDs-fgPF4&sensor=false"}}
+  {{javascriptAsync "hammer-time"}}
+  {{javascriptAsync "common"}}
+  {{javascriptAsync "mithril"}}
+  {{javascript "form"}}
+  {{javascript "validation"}}
+</body>
+</html>

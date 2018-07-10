@@ -1,0 +1,3 @@
+build/build.js
+/admin/components/froala-editor/*.js
+/admin/components/froala-editor/js/*.js

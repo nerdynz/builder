@@ -1,0 +1,32 @@
+<section class="building-block container hero is-small container animate-100">
+  <div class="hero-body -u-plr">
+    <div class="columns">
+      {{ if and (hasValue .HTML) (hasValue .HTMLTwo) }}
+      <div class="column is-half">
+        <div class="content is-clearfix">
+          {{ htmlsafe .HTML}}
+        </div>
+      </div>
+      <div class="column is-half">
+        <div class="content is-clearfix">
+          {{ htmlsafe .HTMLTwo}}
+        </div>
+      </div>
+      {{ else if (hasValue .HTMLTwo) }}
+        <div class="column is-half is-offset-6">
+          <div class="content is-clearfix">
+            {{ htmlsafe .HTMLTwo}}
+          </div>
+        </div>
+      {{ else }}
+      <div class="column is-6">
+        <div class="content is-clearfix">
+          {{ htmlsafe .HTML}}
+        </div>
+      </div>
+      <div class="column is-6 -u-p -u-m">
+      </div>
+      {{end }}
+    </div>
+  </div>
+</section>

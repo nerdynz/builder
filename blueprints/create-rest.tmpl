@@ -110,6 +110,26 @@ func Delete{{.TableNameTitle}}(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, isDeleted)
 }
 
+{{ if .HasSort }}
+func Sort{{.TableNameTitle}}(ctx *flow.Context) {
+	var sort models.{{.TableNamePluralTitle}}
+	decoder := json.NewDecoder(ctx.Req.Body)
+	err := decoder.Decode(&sort)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	err = models.{{.TableNameTitle}}Helper().SaveMany(sort)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to update sort position", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, sort)
+}
+{{end}}
+
 	r.GET("/:api/v1/{{.TableNameLower}}/new", actions.New{{.TableNameTitle}}, security.Disallow)
 	r.PST("/:api/v1/{{.TableNameLower}}/create", actions.Create{{.TableNameTitle}}, security.Disallow)
 	r.GET("/:api/v1/{{.TableNameLower}}/retrieve", actions.Retrieve{{.TableNamePluralTitle}}, security.Disallow)
@@ -117,3 +137,5 @@ func Delete{{.TableNameTitle}}(ctx *flow.Context) {
 	r.GET("/:api/v1/{{.TableNameLower}}/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.Paged{{.TableNamePluralTitle}}, security.Disallow)
 	r.PUT("/:api/v1/{{.TableNameLower}}/update/:{{.TableNameCamel}}ID", actions.Update{{.TableNameTitle}}, security.Disallow)
 	r.DEL("/:api/v1/{{.TableNameLower}}/delete/:{{.TableNameCamel}}ID", actions.Delete{{.TableNameTitle}}, security.Disallow)
+	{{ if .HasSort }}r.PUT("/:api/v1/{{.TableNameLower}}/sort", actions.Sort{{.TableNameTitle}}, security.Disallow){{end}}
+	

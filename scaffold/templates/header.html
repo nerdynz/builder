@@ -1,0 +1,27 @@
+{{ $bucket := . }}
+<header class="header u-fw">
+  <div id="menu-bg" class="menu-overlay is-overlay is-fixed"></div>
+  <div class="container xis-fluid nav-outer">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item site-logo wrapped" href="/">
+          {{image "logo.png" "logo" "logo"}}
+        </a>
+        <a id="menu-button" class="navbar-burger" onclick="menu.toggle()">
+          <span></span>
+          <span></span>
+          <span></span>
+        </a>
+      </div>
+      <div id="menu" class="navbar-menu " nav-count="{{.TopNavCount}}">
+        <div class="navbar-end">
+          {{ range $i, $navItem := .TopNav }}
+            {{link $bucket $navItem.Title $navItem.Slug "navbar-item"}}
+          {{ end }}
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+<div class="sticky-content">
+

@@ -1,12 +1,13 @@
 <template>
   <list-placeholder @create="create" :showing="hasData" :loading="isLoading">
-    <b-table ref="{{.TableNameCamel}}List" datakey="{{.TableNameCamel}}ID" :data="pagedData.records"
+    <b-table ref="{{.TableNameCamel}}List" datakey="{{.TableIDTitle}}" :data="pagedData.records"
        :striped="true" :mobile-cards="true" 
        :paginated="true" :per-page="pagedData.limit" 
        :backend-pagination="true"
        :backend-sorting="true"
        :total="pagedData.total"
        :default-sort="[pagedData.sort, pagedData.direction]"
+       {{if .HasSort}}@row-drag-dropped="sorting"{{end}}
        @sort="sort"
        @page-change="pageChange"
        >
@@ -20,17 +21,24 @@
             </p>
           </div>
         </b-table-column>{{range $index, $column := .Columns}}
-        <b-table-column field="{{$column.ColumnNameTitle}}" label="{{$column.ColumnNameTitle}}">
+        {{ if $column.IsID}}
+        {{ else if $column.IsSort }}<b-table-column class="draggy" field="SortPosition" label="Sort"> 
+          <div class="sort-field">
+            <span class="icon " ><i class="fa fa-bars"></i></span>
+            <div class="sort-text">{{"{{"}}props.row.SortPosition{{"}}"}}</div>
+          </div>
+        </b-table-column>{{else}}<b-table-column field="{{$column.ColumnNameTitle}}" label="{{$column.ColumnNameTitle}}">
           {{ if $column.IsDate }}{{"{{"}} fmtDate(props.row.{{$column.ColumnNameTitle}}) {{"}}"}}{{end}}{{ if $column.IsDefault }}{{"{{"}} props.row.{{$column.ColumnNameTitle}} {{"}}"}}{{end}}
         </b-table-column>{{end}}
-      </template>
+      {{end}}</template>
     </b-table>
   </list-placeholder>
 </template>
 
-<script>
+{{.LTStr}}script{{.GTStr}}
 import ListPlaceholder from '~/components/layout/ListPlaceholder'
 import {fmtDate} from '~/helpers/format'
+{{ if .HasSort }}import {changeSort} from '~/helpers/filters'{{ end }}
 import {mapActions} from 'vuex'
 
 export default {
@@ -74,13 +82,23 @@ export default {
         this.isLoading = false
       })
     },
+
     create () {
-      this.$router.push({ name: '{{.TableNameCamel}}-{{.TableIDCamel}}', params: { '{{.TableIDCamel}}': 0 } })
+      this.$router.push({ name: '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit', params: { ID: 0 } })
     },
 
     edit (record) {
-      this.$router.push({ name: '{{.TableNameCamel}}-{{.TableIDCamel}}', params: { '{{.TableIDCamel}}': record['{{.TableIDCamel}}'] } })
+      this.$router.push({ name: '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit', params: { ID: record.{{.TableIDTitle}} } })
+    },
+{{if .HasSort}}
+    sorting (from, to) {
+      if (from !== to) {
+        let newRecords = changeSort(this.pagedData.records, from, to)
+        this.pagedData.records = newRecords
+        this.$axios.put('/api/v1/{{.TableNameLower}}/sort', newRecords)
+      }
     }
+{{end}}
   },
   created () {
     this.load('DateModified', 'desc', 50, 1)
@@ -100,47 +118,17 @@ export default {
     }
   }
 }
-</script>
+{{.LTStr}}/script{{.GTStr}}
 
-<script>
-  //MENU
-// import lazyLoading from './lazyLoading'
-
-export default {
-  path: '/{{.TableNameLower}}',
-  meta: {
-    breadcrumb: true,
-    label: '{{.TableNameTitle}}',
-    icon: 'fa-circle-o',
-    expanded: false
-    // role: 'Administrator'
-  },
-  // component: lazyLoading('{{.TableNameLower}}', true),
-
-  children: [
-    {
-      name: '{{.TableNameCamel}}',
-      path: '',
-      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}List'),
-      routeOnly: true,
-      meta: {
-        title: '{{.TableNameCamel}}',
-        label: '{{.TableNameCamel}}'
+'{{.TableNamePlural}}': {
+  title: '{{.TableNameSpaces}}',
+  icon: 'fa-circle-o',
+  children: {
+    '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit': {
+      title: function (instance) {
+        return instance.$route.params.ID === 0 ? 'Create {{.TableNameSpaces}}' : 'Edit {{.TableNameSpaces}}'
       }
-    },
-    {
-      name: 'Create {{.TableNameTitle}}',
-      path: 'create',
-      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}Edit'),
-      routeOnly: true
-    },
-    {
-      name: 'Edit {{.TableNameTitle}}',
-      path: 'edit/:{{.TableNameCamel}}ID',
-      // component: lazyLoading('{{.TableNameLower}}/{{.TableNameCamel}}Edit'),
-      routeOnly: true
     }
-  ]
+  }
 }
 
-</script>
