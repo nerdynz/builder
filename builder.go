@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os/exec"
 
+	"github.com/nerdynz/helpers"
+
 	"bytes"
 
 	"bufio"
@@ -25,6 +27,7 @@ import (
 	"gopkg.in/mattes/migrate.v1/migrate"
 
 	"github.com/serenize/snaker"
+	"github.com/stoewer/go-strcase"
 )
 
 type description struct {
@@ -131,14 +134,22 @@ func createRest(c *cli.Context, r *render.Render, db *runner.DB) error {
 }
 
 func createList(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", "index.vue.tmp")
+	err := createSomethingNoDiff(c, r, db, "create-list-index", "./admin/pages/:TableNameCamelPlural/", "index.vue", true)
+	if err != nil {
+		return err
+	}
+	return createSomething(c, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
 }
 
 func createEdit(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/", "_:TableNameCamelID.vue.tmp")
+	return createSomething(c, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
 }
 
 func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
+	return createSomethingNoDiff(c, r, db, tmpl, path, ext, false)
+}
+
+func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string, skipDiff bool) error {
 	bucket := newViewBucket()
 	args := c.Args()
 
@@ -164,6 +175,7 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	bucket.add("TableNamePlural", inflection.Plural(tableNameLower))
 	bucket.add("TableNamePluralTitle", inflection.Plural(tableNameTitle))
 	bucket.add("TableNamePluralCamel", inflection.Plural(tableNameCamel))
+	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
 	bucket.add("TableID", tableID)
 	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
 	bucket.add("TableIDCamel", camelCase(snaker.SnakeToCamel(tableID)))
@@ -211,7 +223,7 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 	wr := bufio.NewWriter(fo)
 	err = template.Execute(wr, bucket.Data)
 	if err != nil {
-		return err
+		return cli.NewExitError("error 20: "+err.Error(), 1)
 	}
 	wr.Flush()
 	// err = ioutil.WriteFile("./server/models/migrations/"+tableName+".go", buffer.Bytes(), os.ModePerm)
@@ -223,9 +235,12 @@ func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl strin
 		return cli.NewExitError("error 30: "+err.Error(), 1)
 	}
 	fullpathNoTemp := strings.Replace(fullpath, ".tmp", "", 1)
-	err = exec.Command("bcomp", fullpath, fullpathNoTemp).Run()
-	if err != nil {
-		return cli.NewExitError("error 40: "+err.Error(), 1)
+	skip := c.Bool("skip") || skipDiff
+	if !skip {
+		err = exec.Command("bcomp", fullpath, fullpathNoTemp).Run()
+		if err != nil {
+			return cli.NewExitError("error 40: "+err.Error(), 1)
+		}
 	}
 	return nil
 }
@@ -252,7 +267,7 @@ func (colInfo *ColumnInfo) IsNullField() bool {
 }
 
 func (colInfo *ColumnInfo) IsDate() bool {
-	return strings.HasPrefix(colInfo.ColumnName, "Date")
+	return strings.HasPrefix(colInfo.Name(), "Date")
 }
 
 func (colInfo *ColumnInfo) IsDefault() bool {
@@ -264,6 +279,10 @@ func (colInfo *ColumnInfo) IsDefault() bool {
 
 func (colInfo *ColumnInfo) ColumnNameTitle() string {
 	return snaker.SnakeToCamel(colInfo.ColumnName)
+}
+
+func (colInfo *ColumnInfo) ColumnNameSplitTitle() string {
+	return helpers.SplitTitleCase(colInfo.ColumnName)
 }
 
 func (colInfo *ColumnInfo) ColumnNameCamel() string {
@@ -287,6 +306,18 @@ func (colInfo *ColumnInfo) ColumnType() string {
 		return "time.Time"
 	}
 	return ""
+}
+
+func (colInfo *ColumnInfo) IsID() bool {
+	return strings.Contains(colInfo.Name(), "_id") || strings.HasSuffix(colInfo.Name(), "ID")
+}
+
+func (colInfo *ColumnInfo) IsSort() bool {
+	return colInfo.Name() == "sort_position"
+}
+
+func (colInfo *ColumnInfo) ControlType() string {
+	return colInfo.InputControlType()
 }
 
 func (colInfo *ColumnInfo) InputControlType() string {

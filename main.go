@@ -17,6 +17,13 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "builder"
 	app.Usage = "code generation"
+	flags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "skip",
+			Usage: "skip bcomp diff",
+		},
+	}
+	// app.Flags = flags
 	app.Commands = []cli.Command{
 		{
 			Name:    "table",
@@ -25,6 +32,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return createTable(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "fields",
@@ -33,6 +41,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return addFields(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "model",
@@ -41,6 +50,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return createModel(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "rest",
@@ -49,6 +59,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return createRest(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "edit",
@@ -57,6 +68,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return createEdit(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "list",
@@ -65,6 +77,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return createList(c, render, db)
 			},
+			Flags: flags,
 		},
 		{
 			Name:    "migration",
@@ -73,6 +86,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				return doMigration(c, render, db)
 			},
+			Flags: flags,
 		},
 	}
 	app.Run(os.Args)

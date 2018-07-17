@@ -117,6 +117,7 @@ func (viewBucket *viewBucket) getStr(key string) string {
 
 func (viewBucket *viewBucket) addFieldDataFromContext(c *cli.Context) {
 	args := c.Args()
+	// log.Printf("hi %s", args)
 	viewBucket.add("TableName", args.First())
 
 	fields := Fields{}
