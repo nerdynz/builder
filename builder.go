@@ -294,7 +294,8 @@ func (colInfo *ColumnInfo) ColumnNameCamel() string {
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
-	if colInfo.DataType == "text" {
+	// log.Printf("datatype: %s", colInfo.DataType)
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
 		return "string"
 	}
 	if colInfo.DataType == "uuid" {
@@ -325,7 +326,7 @@ func (colInfo *ColumnInfo) ControlType() string {
 }
 
 func (colInfo *ColumnInfo) InputControlType() string {
-	if colInfo.DataType == "text" {
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
 		if strings.Contains(strings.ToLower(colInfo.ColumnName), "image") ||
 			strings.Contains(strings.ToLower(colInfo.ColumnName), "picture") {
 			return "image"
