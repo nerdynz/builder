@@ -190,6 +190,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	if err != nil {
 		return cli.NewExitError("error 10: "+err.Error(), 1)
 	}
+
 	colsDBConcat := `"`
 	colsRecordPrefixedConcat := ""
 	for i, col := range columns {
@@ -278,6 +279,9 @@ func (colInfo *ColumnInfo) IsDefault() bool {
 }
 
 func (colInfo *ColumnInfo) ColumnNameTitle() string {
+	if colInfo.ColumnName == "ulid" {
+		return "ULID"
+	}
 	return snaker.SnakeToCamel(colInfo.ColumnName)
 }
 
