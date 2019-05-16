@@ -11,7 +11,7 @@ func New{{.TableNameTitle}}(ctx *flow.Context) {
 
 func Create{{.TableNameTitle}}(ctx *flow.Context) {
 	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
-	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.NewFromRequest(ctx.Req)
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.FromRequest(ctx.Req)
 	if err != nil {
 		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to create {{.TableNameCamel}} record", nil)
 		return
@@ -76,7 +76,7 @@ func Paged{{.TableNamePluralTitle}}(ctx *flow.Context) {
 
 func Update{{.TableNameTitle}}(ctx *flow.Context) {
 	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
-	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.LoadAndUpdateFromRequest(ctx.Req)
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.FromRequest(ctx.Req)
 	if err != nil {
 		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to load {{.TableNameTitle}} record for update", err)
 		return

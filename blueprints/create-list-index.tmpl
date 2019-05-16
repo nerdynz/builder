@@ -2,7 +2,7 @@
   {{.LTStr}}{{.TableNameKebab}}-list{{.GTStr}}{{.LTStr}}/{{.TableNameKebab}}-list{{.GTStr}}
 </template>
 {{.LTStr}}script{{.GTStr}}
-import {{ .TableNameTitle | jsesc }}List from './{{.TableNameCamel}}List.vue'
+import {{ .TableNameTitle }}List from './{{.TableNameCamel}}List.vue'
 export default {
   components: {
     {{.TableNameTitle}}List

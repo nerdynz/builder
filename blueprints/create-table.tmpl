@@ -3,6 +3,9 @@ CREATE TABLE "{{.Data.TableName}}" (
     {{range $field := .Data.Fields}}"{{$field.FieldName}}" {{$field.FieldType}},{{end}}
     "date_created" timestamptz,
     "date_modified" timestamptz,
-    "ulid" string,
+    {{if eq .Data.TableName "usersession_token"}}
+    {{else}}
+    "ulid" varchar(26),
+    {{end}}
     PRIMARY KEY ("{{.Data.TableName}}_id")
 );

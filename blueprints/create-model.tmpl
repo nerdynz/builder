@@ -12,25 +12,39 @@ import (
 
 	"sort"
 
-	validator "gopkg.in/go-playground/validator.v9"
 	runner "github.com/nerdynz/dat/sqlx-runner"
 	redis "gopkg.in/redis.v5"
 )
 
-// {{.TableNameTitle}} Struct
+var {{.TableNameCamel}}HelperGlobal *{{.TableNameCamel}}Helper
+
+// {{.TableNameTitle}} Record
 type {{.TableNameTitle}} struct {
   {{range $index, $column := .Columns}}{{$column.ColumnNameTitle}} {{$column.ColumnType}} `db:"{{$column.ColumnName}}" json:"{{$column.ColumnNameTitle}}"`
   {{end}}
 }
 
-var {{.TableNameCamel}}HelperGlobal *{{.TableNameCamel}}Helper
+type {{.TableNamePluralTitle}} []*{{.TableNameTitle}}
 
-type {{.TableNameTitle}}s []*{{.TableNameTitle}}
+func (h *{{.TableNameCamel}}Helper) beforeSave(record *{{.TableNameTitle}}) (err error) {
+	if record.DateCreated.IsZero() {
+		record.DateCreated = time.Now()
+	}
+	record.DateModified = time.Now()
+	if record.ULID == "" {
+		record.ULID = security.ULID()
+	}
+	return err
+}
 
+func (h *{{.TableNameCamel}}Helper) afterSave(record *{{.TableNameTitle}}) (err error) {
+	return err
+}
+
+// GENERATED CODE
 type {{.TableNameCamel}}Helper struct {
 	DB            *runner.DB
 	Cache         *redis.Client
-	Validator     *validator.Validate
 	structDecoder *schema.Decoder
 	fieldNames    []string
 	orderBy       string
@@ -38,25 +52,23 @@ type {{.TableNameCamel}}Helper struct {
 
 func {{.TableNameTitle}}Helper() *{{.TableNameCamel}}Helper {
 	if {{.TableNameCamel}}HelperGlobal == nil {
-		{{.TableNameCamel}}HelperGlobal = new{{.TableNameTitle}}Helper(modelDB, modelCache, modelValidator, modelDecoder)
+		{{.TableNameCamel}}HelperGlobal = new{{.TableNameTitle}}Helper(modelDB, modelCache, modelDecoder)
 	}
 	return {{.TableNameCamel}}HelperGlobal
 }
 
-func new{{.TableNameTitle}}Helper(db *runner.DB, redis *redis.Client, validate *validator.Validate, structDecoder *schema.Decoder) *{{.TableNameCamel}}Helper {
+func new{{.TableNameTitle}}Helper(db *runner.DB, redis *redis.Client, structDecoder *schema.Decoder) *{{.TableNameCamel}}Helper {
 	helper := &{{.TableNameCamel}}Helper{}
 	helper.DB = db
 	helper.Cache = redis
-	helper.Validator = validate
 	helper.structDecoder = structDecoder
-	
+
 	// Fields
-  fieldnames := []string{"{{.TableID}}", {{.ColumnsDBStrings}}}
+	fieldnames := []string{"{{.TableID}}", {{.ColumnsDBStrings}}}
 	sort.Strings(fieldnames) // sort it makes searching it work correctly
 	helper.fieldNames = fieldnames
-	{{if .HasSort}}
-	helper.orderBy = "sort_position, date_created, date_modified"{{else}}
-	helper.orderBy = "date_created, date_modified"{{end}}
+	
+	{{if .HasSort}}helper.orderBy = "sort_position, date_created, date_modified"{{else}}helper.orderBy = "date_created, date_modified"{{end}}
 	return helper
 }
 
@@ -67,55 +79,41 @@ func (h *{{.TableNameCamel}}Helper) New() *{{.TableNameTitle}} {
 	return record
 }
 
-func (h *{{.TableNameCamel}}Helper) NewFromRequest(req *http.Request) (*{{.TableNameTitle}}, error) {
+func (h *{{.TableNameCamel}}Helper) FromRequest(req *http.Request) (*{{.TableNameTitle}}, error) {
 	record := h.New()
-	err := h.UpdateFromRequest(req, record)
-	if err != nil {
-		return nil, err
-	}
-	return record, nil
-}
-
-func (h *{{.TableNameCamel}}Helper) LoadAndUpdateFromRequest(req *http.Request) (*{{.TableNameTitle}}, error) {
-	// dummyPack is used to get the pack ID from the request and also to check the date modified
-	newRecord, err := h.NewFromRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if newRecord.{{.TableNameTitle}}ID {{.LTEqStr}} 0 {
-		return nil, errors.New("The {{.TableNameSplit}} failed to load because {{.TableNameTitle}}ID was not found in the request.")
-	}
-
-	return newRecord, nil
-}
-
-func (h *{{.TableNameCamel}}Helper) UpdateFromRequest(req *http.Request, record *{{.TableNameTitle}}) error {
 	contentType := req.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
 		// working with json
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(record)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		// working with form values
 		err := req.ParseForm()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		err = h.structDecoder.Decode(record, req.PostForm)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return record, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) All() ({{.TableNameTitle}}s, error) {
-	var records {{.TableNameTitle}}s
+func (h *{{.TableNameCamel}}Helper) Load(id int) (*{{.TableNameTitle}}, error) {
+	record, err := h.One("{{.TableID}} = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) All() ({{.TableNamePluralTitle}}, error) {
+	var records {{.TableNamePluralTitle}}
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
 		OrderBy(h.orderBy).
@@ -128,8 +126,8 @@ func (h *{{.TableNameCamel}}Helper) All() ({{.TableNameTitle}}s, error) {
 	return records, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Where(whereSQLOrMap interface{}, args ...interface{}) ({{.TableNameTitle}}s, error) {
-	var records {{.TableNameTitle}}s
+func (h *{{.TableNameCamel}}Helper) Where(whereSQLOrMap interface{}, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
+	var records {{.TableNamePluralTitle}}
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
 		Where(whereSQLOrMap, args...).
@@ -145,7 +143,6 @@ func (h *{{.TableNameCamel}}Helper) Where(whereSQLOrMap interface{}, args ...int
 
 func (h *{{.TableNameCamel}}Helper) One(whereSQLOrMap interface{}, args ...interface{}) (*{{.TableNameTitle}}, error) {
 	var record {{.TableNameTitle}}
-	
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
 		Where(whereSQLOrMap, args...).
@@ -184,7 +181,7 @@ func (h *{{.TableNameCamel}}Helper) PagedBy(pageNum int, itemsPerPage int, order
 		return nil, errors.New("direction isn't valid")
 	}
 
-	var records {{.TableNameTitle}}s
+	var records {{.TableNamePluralTitle}}
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
 		OrderBy(orderByFieldName + " " + direction).
@@ -197,67 +194,17 @@ func (h *{{.TableNameCamel}}Helper) PagedBy(pageNum int, itemsPerPage int, order
 	}
 
 	count := 0
-	h.DB.SQL(`select count({{.TableName}}_id) from {{.TableName}}`).QueryStruct(&count)
+	h.DB.SQL(`select count({{.TableID}}) from {{.TableName}}`).QueryStruct(&count)
 	return NewPagedData(records, orderByFieldName, direction, itemsPerPage, pageNum, count), nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Load(id int) (*{{.TableNameTitle}}, error) {
-	record := &{{.TableNameTitle}}{}
-	err := h.DB.
-		Select("*").
-		From("{{.TableName}}").
-		Where("{{.TableID}} = $1", id).
-		QueryStruct(record)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return record, nil
-}
-
 func (h *{{.TableNameCamel}}Helper) Save(record *{{.TableNameTitle}}) error {
-	// date created always should be set, if its null just set it to now.
-	if record.DateCreated.IsZero() {
-		record.DateCreated = time.Now()
-	}
-
-	// was just modified
-	record.DateModified = time.Now()
-
-	// check validation
-	_, err := h.Validate(record)
-	if err != nil {
-		return err
-	}
-
-	err = h.save(record)
-  if err != nil {
-		return err
-	}
-
-	return err
+	return h.save(record)
 }
 
-func (h *{{.TableNameCamel}}Helper) SaveMany(records {{.TableNameTitle}}s) error {
+func (h *{{.TableNameCamel}}Helper) SaveMany(records {{.TableNamePluralTitle}}) error {
 	for _, record := range records {
-		// date created always should be set, if its null just set it to now.
-		if record.DateCreated.IsZero() {
-			record.DateCreated = time.Now()
-		}
-
-		// was just modified
-		record.DateModified = time.Now()
-
-		// check validation
-		_, err := h.Validate(record)
-    if err != nil {
-      return err
-    }
-  }
-
-	for _, record := range records {
-    // everything is validated so now re loop and do the actual saving... this should probably be a tx that can just rollback
+		// everything is validated so now re loop and do the actual saving... this should probably be a tx that can just rollback
 		err := h.save(record)
 		if err != nil {
 			return err
@@ -267,35 +214,42 @@ func (h *{{.TableNameCamel}}Helper) SaveMany(records {{.TableNameTitle}}s) error
 	return nil
 }
 
-func (h *{{.TableNameCamel}}Helper) save(record *{{.TableNameTitle}}) error {
-	err := h.DB.
-		Upsert("{{.TableName}}").
-		Columns({{.ColumnsDBStrings}}).
-		Values({{.ColumnsRecordPrefixedStrings}}).
-    Where("{{.TableID}}=$1", record.{{.TableNameTitle}}ID).
-		Returning("{{.TableID}}").
-		QueryStruct(record)
-
+func (h *{{.TableNameCamel}}Helper) save(record *{{.TableNameTitle}}) (err error) {
+	err = h.beforeSave(record)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// Validate a record
-func (h *{{.TableNameCamel}}Helper) Validate(record *{{.TableNameTitle}}) (bool, error) {
-	validationErrors := h.Validator.Struct(record)
-	if validationErrors != nil {
-		return false, validationErrors
+	cols := []string{ {{.ColumnsDBStrings}} }
+	vals := []interface{}{ {{.ColumnsRecordPrefixedStrings}} }
+	if record.{{.TableNameTitle}}ID > 0 {
+		// UPDATE
+		b := h.DB.Update("{{.TableName}}")
+		for i := range cols {
+			b.Set(cols[i], vals[i])
+		}
+		b.Where("{{.TableID}} = $1", record.{{.TableNameTitle}}ID)
+		b.Returning("{{.TableID}}")
+		err = b.QueryStruct(record)
+	} else {
+		// INSERT
+		err = h.DB.
+			InsertInto("{{.TableName}}").
+			Columns(cols...).
+			Values(vals...).
+			Returning("{{.TableID}}").
+			QueryStruct(record)
 	}
-	return true, nil
+	if err != nil {
+		return err
+	}
+	err = h.afterSave(record)
+	return err
 }
 
 func (h *{{.TableNameCamel}}Helper) Delete(recordID int) (bool, error) {
 	result, err := h.DB.
 		DeleteFrom("{{.TableName}}").
-    Where("{{.TableID}}=$1", recordID).
+		Where("{{.TableID}}=$1", recordID).
 		Exec()
 
 	if err != nil {

@@ -27,17 +27,15 @@
             <span class="icon " ><i class="fa fa-bars"></i></span>
             <div class="sort-text">{{"{{"}}props.row.SortPosition{{"}}"}}</div>
           </div>
-        </b-table-column>{{else}}<b-table-column field="{{$column.ColumnNameTitle}}" label="{{$column.ColumnNameTitle}}">
+        </b-table-column>{{else}}<b-table-column field="{{$column.ColumnNameTitle}}" label="{{$column.ColumnNameSplitTitle}}">
           {{ if $column.IsDate }}{{"{{"}} fmtDate(props.row.{{$column.ColumnNameTitle}}) {{"}}"}}{{end}}{{ if $column.IsDefault }}{{"{{"}} props.row.{{$column.ColumnNameTitle}} {{"}}"}}{{end}}
         </b-table-column>{{end}}
       {{end}}</template>
     </b-table>
   </list-placeholder>
 </template>
-
 {{.LTStr}}script{{.GTStr}}
 import ListPlaceholder from '~/components/layout/ListPlaceholder'
-import {fmtDate} from '~/helpers/format'
 {{ if .HasSort }}import {changeSort} from '~/helpers/filters'{{ end }}
 import {mapActions} from 'vuex'
 
@@ -59,8 +57,6 @@ export default {
     }
   },
   methods: {
-    fmtDate,
-
     ...mapActions({
       setButtons: 'app/setButtons'
     }),
@@ -84,13 +80,13 @@ export default {
     },
 
     create () {
-      this.$router.push({ name: '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit', params: { ID: 0 } })
+      this.$router.push({ name: '{{.TableNamePluralCamel}}-ID-{{.TableNameCamel}}Edit', params: { ID: 0 } })
     },
 
     edit (record) {
-      this.$router.push({ name: '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit', params: { ID: record.{{.TableIDTitle}} } })
-    },
-{{if .HasSort}}
+      this.$router.push({ name: '{{.TableNamePluralCamel}}-ID-{{.TableNameCamel}}Edit', params: { ID: record.{{.TableIDTitle}} } })
+    }{{if .HasSort}},
+
     sorting (from, to) {
       if (from !== to) {
         let newRecords = changeSort(this.pagedData.records, from, to)
@@ -131,4 +127,3 @@ export default {
     }
   }
 }
-

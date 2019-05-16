@@ -23,7 +23,7 @@ export default {
   },
   computed: {
     isNewRecord () {
-      if (this.routeID <= 0) {
+      if (this.routeID {{.LTStr}}= 0) {
         return true
       }
       return false
@@ -32,12 +32,18 @@ export default {
       return this.$route.params.ID ? parseInt(this.$route.params.ID) : 0
     },
     buttons () {
-      return [
+      let buttons = [
         {text: 'Save', alignment: 'left', kind: 'success', click: this.save, isDisabled: this.$validator.errors.any()},
         {text: 'Save & Return', alignment: 'left', kind: 'success', click: () => { this.save(true) }, isDisabled: this.$validator.errors.any()},
-        {text: 'Back', alignment: 'left', kind: 'text', click: this.back},
-        {text: 'Delete', alignment: 'right', kind: 'danger', click: this.remove}
+        {text: 'Back', alignment: 'left', kind: '', click: this.back}
       ]
+      if (this.isNewRecord) {
+
+      } else {
+        // cant delete a new record
+        buttons.push({text: 'Delete', alignment: 'right', kind: 'danger', click: this.remove})
+      }
+      return buttons
     },
     ...mapGetters({
       user: 'app/user'
@@ -62,23 +68,23 @@ export default {
     },
 
     save (goBack) {
-      if (this.errors.any()) {
-        this.$toast.open({title: 'Failed to save!', message: 'Please double check the fields highlighted.', type: 'is-danger'})
-        return
-      }
-
-      this.setButtons(this.buttons)
-      this.$service.save('{{.TableNameCamel}}', this.record).then((newRecord) => {
-        this.record = newRecord
-        this.$toast.open({message: `{{.TableNameSpaces}} saved successfully`, type: 'is-success'})
-        if (goBack === true) {
-          this.back()
-          return
-        } else if (this.routeID === 0) {
-          this.$router.replace({name: '{{.TableNameLower}}-{{.TableNameLower}}ID', params: { '{{.TableIDCamel}}': newRecord['{{.TableIDTitle}}'] }})
-        }
-        this.setButtons(this.buttons)
+      var promise = new Promise((resolve, reject) => {
+        this.$validator.validateAll().then((valid) => {
+          if (valid) {
+            this.$service.save('{{.TableNameCamel}}', this.record).then((newRecord) => {
+              this.record = newRecord
+              this.$snackbar.open({position: 'is-top', message: `{{.TableNameSpaces}} saved successfully`, type: 'is-success'})
+              if (this.routeID === 0) {
+                this.$router.replace({name: '{{.TableNamePlural}}-ID-{{.TableNameCamel}}Edit', params: { 'ID': newRecord['{{.TableNameTitle}}ID'] }})
+              }
+              resolve(newRecord)
+            })
+          } else {
+            this.$snackbar.open({position: 'is-top', title: 'Failed to save!', message: 'Please double check the fields highlighted.', type: 'is-danger'})
+          }
+        })
       })
+      return promise
     },
 
     back (ev) {
