@@ -119,7 +119,7 @@ func addFields(c *cli.Context, r *render.Render, db *runner.DB) error {
 func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
 	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations")
 	finalError := ""
-	if ok && errs == nil {
+	if ok {
 		// sweet
 	} else {
 		for _, err := range errs {

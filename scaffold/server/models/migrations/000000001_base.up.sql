@@ -3,9 +3,7 @@ CREATE TABLE "person" (
     "name" text,"email" text,"password" text,"phone" text,"role" text,"picture" text,
     "date_created" timestamptz,
     "date_modified" timestamptz,
-    
     "ulid" varchar(26),
-    
     PRIMARY KEY ("person_id")
 );
 
@@ -14,13 +12,11 @@ CREATE TABLE "usersession_token" (
     "cache_token" text,"table_name" text,"record_id" integer,"expiry_date" timestamptz,
     "date_created" timestamptz,
     "date_modified" timestamptz,
-    
-    
     PRIMARY KEY ("usersession_token_id")
 );
 
-CREATE TABLE page (
-    "page_id" SERIAL PRIMARY KEY,
+CREATE TABLE "page" (
+    "page_id" SERIAL,
     "title" text,
     "slug" text,
     "summary" text,
@@ -63,11 +59,12 @@ CREATE TABLE page (
     "show_title" boolean,
     "show_subtitle" boolean,
     "seo_title" text,
-    "color" text
+    "color" text,
+    PRIMARY KEY ("page_id")
 );
 
-CREATE TABLE block (
-    "block_id" SERIAL PRIMARY KEY,
+CREATE TABLE "block" (
+    "block_id" SERIAL,
     "picture" text,
     "picture_two" text,
     "picture_three" text,
@@ -93,5 +90,6 @@ CREATE TABLE block (
     "additional" text,
     "additional_two" text,
     "additional_three" text,
-    "additional_four" text
+    "additional_four" text,
+    PRIMARY KEY ("block_id")
 );
