@@ -120,10 +120,14 @@ func main() {
 			Action: func(c *cli.Context) error {
 				err := dotenv.Load() // load from .env file where scaffold is run
 				if err != nil {
-					return err
+					panic(err)
 				}
 				db := getDBConnection()
-				return doMigration(c, render, db)
+				err = doMigration(c, render, db)
+				if err != nil {
+					panic(err)
+				}
+				return err
 			},
 			Flags: flags,
 		},
