@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -58,7 +58,7 @@
 
       for (i = lists.length - 1; i >= 0; i--) {
         var $l = $(lists[i]);
-        $l.replaceWith('<' + tag_name.toLowerCase() + ' ' + editor.node.attributes($l.get(0)) + '>' + $l.html() + '</' + tag_name.toLowerCase() + '>');
+        $l.replaceWith('<' + tag_name.toLowerCase() + '>' + $l.html() + '</' + tag_name.toLowerCase() + '>');
       }
     }
 
@@ -156,17 +156,12 @@
 
           var prop = (editor.opts.direction == 'rtl' || $li.css('direction') == 'rtl') ? 'margin-right' : 'margin-left';
 
-          if (editor.helpers.getPX($(parent_node).css(prop)) && ($(parent_node).attr('style') || '').indexOf(prop + ':') >= 0) {
+          if (editor.helpers.getPX($(parent_node).css(prop))) {
             li_attrs += ' style="' + prop + ':' + editor.helpers.getPX($(parent_node).css(prop)) + 'px;"';
           }
 
-          // When we have a default tag.
-          if (editor.html.defaultTag()) {
-
-            // If there are no inner block tags, put everything in a default tag.
-            if ($li.find(editor.html.blockTagsQuery()).length === 0) {
-              $li.wrapInner('<' + editor.html.defaultTag() + li_attrs + '></' + editor.html.defaultTag() + '>')
-            }
+          if (li_attrs) {
+            $li.wrapInner('<' + editor.html.defaultTag() + li_attrs + '></' + editor.html.defaultTag() + '>')
           }
 
           // Append BR if the node is not empty.

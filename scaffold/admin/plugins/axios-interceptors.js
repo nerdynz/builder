@@ -23,7 +23,7 @@ export default function ({ app, store }) {
 
     return response
   }, function (error) {
-    console.log(error)
+    console.log(error) // eslint-disable-line
     // nprogress.done()
     if (!error.response) {
       app.$toast.open({ message: error.message, type: 'is-danger', duration: 5000 })
@@ -50,11 +50,11 @@ export default function ({ app, store }) {
 
       // console.log(errorData)
       let message = errorData
-      if (errorData.Friendly) {
+      if (errorData && errorData.Friendly) {
         message = errorData.Friendly
       }
 
-      app.$snackbar.open({ message: message, type: 'is-danger', duration: 5000, position: 'is-top-right' })
+      app.$toast.open({ message: message, type: 'is-danger', duration: 5000 })
     }
     // Do something with request error
     return Promise.reject(error)

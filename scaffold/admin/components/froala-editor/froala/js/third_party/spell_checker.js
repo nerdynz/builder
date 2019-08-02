@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -32,26 +32,23 @@
 }(function ($) {
 
   
-  $.FE.DEFAULT_SCAYT_OPTIONS = {
-    enableOnTouchDevices: false,
-    disableOptionsStorage: ['all'],
-    localization:'en',
-    extraModules: 'ui',
-    DefaultSelection: 'American English',
-    spellcheckLang: 'en_US',
-    contextMenuSections: 'suggest|moresuggest',
-    serviceProtocol: 'https',
-    servicePort:'80',
-    serviceHost:'svc.webspellchecker.net',
-    servicePath:'spellcheck/script/ssrv.cgi',
-    contextMenuForMisspelledOnly: true,
-    scriptPath: 'https://svc.webspellchecker.net/spellcheck31/wscbundle/wscbundle.js'
-  }
-
   $.extend($.FE.DEFAULTS, {
     scaytAutoload: false,
     scaytCustomerId: '1:tLBmI3-7rr3J1-GMEFA1-mIewo-hynTZ1-PV38I1-uEXCy2-Rn81L-gXuG4-NUNri4-5q9Q34-Jd',
-    scaytOptions: {}
+    scaytOptions: {
+      enableOnTouchDevices: false,
+      localization:'en',
+      extraModules: 'ui',
+      DefaultSelection: 'American English',
+      spellcheckLang: 'en_US',
+      contextMenuSections: 'suggest|moresuggest',
+      serviceProtocol: 'https',
+      servicePort:'80',
+      serviceHost:'svc.webspellchecker.net',
+      servicePath:'spellcheck/script/ssrv.cgi',
+      contextMenuForMisspelledOnly: true,
+      scriptPath: 'https://svc.webspellchecker.net/spellcheck31/lf/scayt3/customscayt/customscayt.js'
+    }
   });
 
   $.FE.PLUGINS.spellChecker = function (editor) {
@@ -59,7 +56,7 @@
 
     // Refresh button in toolbar.
     function refresh ($btn) {
-      if (object && object.isDisabled) {
+      if (object) {
         var active = !object.isDisabled();
         $btn.toggleClass('fr-active', active).attr('aria-pressed', active);
 
@@ -69,27 +66,31 @@
 
     // Remove markup from the current selection.
     function _beforeCommand (cmd) {
-      if (!object || !object.isDisabled || object.isDisabled()) return;
+      if (!object || object.isDisabled()) return;
 
-      if (['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'html'].indexOf(cmd) >= 0) {
+      if (['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize'].indexOf(cmd) >= 0) {
         object.removeMarkupInSelectionNode({
           removeInside: true
         });
+      }
+
+      if (cmd == 'html') {
+        toggle();
       }
     }
 
     // Reload markup on the current selection.
     function _afterCommand (cmd) {
-      if (!object || !object.isDisabled || object.isDisabled()) return;
+      if (!object || object.isDisabled()) return;
 
-      if (['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'html'].indexOf(cmd) >= 0) {
+      if (['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize'].indexOf(cmd) >= 0) {
         object.reloadMarkup();
       }
     }
 
     // Key press.
     function _keyPress (e) {
-      if (!object || !object.isDisabled || object.isDisabled()) return;
+      if (!object || object.isDisabled()) return;
 
       var key_code = e.which;
 
@@ -101,26 +102,9 @@
 
     // Toggle spellchecker.
     function toggle () {
-      if (!object || !object.isDisabled) return;
+      if (!object) return;
 
       object.setDisabled(!object.isDisabled());
-    }
-
-    // Clean HTML on get.
-    function _cleanOnGet (el) {
-      // Tag is image.
-      if (el && el.getAttribute && el.getAttribute('data-scayt-word')) {
-        el.outerHTML = el.innerHTML;
-      }
-
-      // Look for inner nodes that might be in a similar case.
-      else if (el && el.nodeType == Node.ELEMENT_NODE) {
-        var els = el.querySelectorAll('[data-scayt-word], [data-spelling-word]');
-
-        for (var i = 0; i < els.length; i++) {
-          els[i].outerHTML = els[i].innerHTML;
-        }
-      }
     }
 
     function _loaded () {
@@ -128,9 +112,6 @@
       editor.events.on('commands.before', _beforeCommand);
       editor.events.on('commands.after', _afterCommand);
       editor.events.on('keydown', _keyPress, true);
-
-      // Remove markup when getting the HTML.
-      editor.events.on('html.processGet', _cleanOnGet);
 
       // Refresh;
       refresh(editor.$tb.find('[data-cmd="spellChecker"]'));
@@ -160,8 +141,6 @@
     // Initialize.
     function _init () {
       if (!editor.$wp) return false;
-
-      editor.opts.scaytOptions = $.extend({}, $.FE.DEFAULT_SCAYT_OPTIONS, editor.opts.scaytOptions);
 
       if (typeof SCAYT !== 'undefined') {
         _doInit();
@@ -198,10 +177,7 @@
   };
 
   // Register spellchecker command.
-  $.FE.DefineIcon('spellChecker', {
-    NAME: 'keyboard-o',
-    FA5NAME: 'keyboard'
-  });
+  $.FE.DefineIcon('spellChecker', { NAME: 'keyboard-o' });
   $.FE.RegisterCommand('spellChecker', {
     title: 'Spell Checker',
     undo: false,

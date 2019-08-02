@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -64,7 +64,6 @@ $.FE.LANGUAGE['id'] = {
     "Colors": "Warna",
     "Background": "Latar belakang",
     "Text": "Teks",
-    "HEX Color": "Warna hex",
 
     // Paragraphs
     "Paragraph Format": "Format",
@@ -121,21 +120,15 @@ $.FE.LANGUAGE['id'] = {
     "Display": "Pameran",
     "Inline": "Di barisan",
     "Break Text": "Memecah teks",
-    "Alternative Text": "Teks alternatif",
+    "Alternate Text": "Teks alternatif",
     "Change Size": "Ukuran perubahan",
     "Width": "Lebar",
     "Height": "Tinggi",
     "Something went wrong. Please try again.": "Ada yang salah. Silakan coba lagi.",
-    "Image Caption": "Keterangan gambar",
-    "Advanced Edit": "Edit lanjutan",
 
     // Video
     "Insert Video": "Memasukkan video",
     "Embedded Code": "Kode tertanam",
-    "Paste in a video URL": "Paste di url video",
-    "Drop video": "Jatuhkan video",
-    "Your browser does not support HTML5 video.": "Browser Anda tidak mendukung video html5.",
-    "Upload Video": "Mengunggah video",
 
     // Tables
     "Insert Table": "Sisipkan tabel",
@@ -261,57 +254,7 @@ $.FE.LANGUAGE['id'] = {
     "Decrease": "Penurunan",
 
     // Quick Insert
-    "Quick Insert": "Memasukkan cepat",
-
-    // Spcial Characters
-    "Special Characters": "Karakter spesial",
-    "Latin": "Latin",
-    "Greek": "Yunani",
-    "Cyrillic": "Kyrillic",
-    "Punctuation": "Tanda baca",
-    "Currency": "Mata uang",
-    "Arrows": "Panah",
-    "Math": "Matematika",
-    "Misc": "Misc",
-
-    // Print.
-    "Print": "Mencetak",
-
-    // Spell Checker.
-    "Spell Checker": "Pemeriksa ejaan",
-
-    // Help
-    "Help": "Membantu",
-    "Shortcuts": "Jalan pintas",
-    "Inline Editor": "Editor inline",
-    "Show the editor": "Tunjukkan editornya",
-    "Common actions": "Tindakan umum",
-    "Copy": "Salinan",
-    "Cut": "Memotong",
-    "Paste": "Pasta",
-    "Basic Formatting": "Format dasar",
-    "Increase quote level": "Meningkatkan tingkat kutipan",
-    "Decrease quote level": "Menurunkan tingkat kutipan",
-    "Image / Video": "Gambar / video",
-    "Resize larger": "Mengubah ukuran lebih besar",
-    "Resize smaller": "Mengubah ukuran lebih kecil",
-    "Table": "Meja",
-    "Select table cell": "Pilih sel tabel",
-    "Extend selection one cell": "Memperpanjang seleksi satu sel",
-    "Extend selection one row": "Perpanjang pilihan satu baris",
-    "Navigation": "Navigasi",
-    "Focus popup / toolbar": "Fokus popup / toolbar",
-    "Return focus to previous position": "Kembali fokus ke posisi sebelumnya",
-
-    // Embed.ly
-    "Embed URL": "Embed url",
-    "Paste in a URL to embed": "Paste di url untuk menanamkan",
-
-    // Word Paste.
-    "The pasted content is coming from a Microsoft Word document. Do you want to keep the format or clean it up?": "Konten yang disisipkan berasal dari dokumen kata microsoft. apakah Anda ingin menyimpan format atau membersihkannya?",
-    "Keep": "Menjaga",
-    "Clean": "Bersih",
-    "Word Paste Detected": "Kata paste terdeteksi"
+    "Quick Insert": "Memasukkan cepat"
   },
   direction: "ltr"
 };

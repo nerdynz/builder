@@ -42,6 +42,12 @@
 
 .u-bg {
   background: $body-background;
+  &.is-lighter-grey {
+    background: $grey-lighter;
+  }
+  // &.is-light-purple {
+  //   background: $purple-light;
+  // }
 }
 
 .-u-mb {
@@ -71,6 +77,10 @@
 
 .u-pt {
   padding-top: 1rem;
+}
+
+.u-lg-pt {
+  padding-top: 2rem;
 }
 
 .u-pb {
@@ -123,6 +133,10 @@
   margin-bottom: 0.5rem !important;
 }
 
+.u-m {
+  margin: 1rem !important;
+}
+
 .u-mt{
   margin-top: 1rem !important;
 }
@@ -134,6 +148,11 @@
 .u-mtb{
   margin-bottom: 1rem !important;
   margin-top: 1rem !important;
+}
+
+.u-mlr{
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
 }
 
 .u-bg-mt {
@@ -208,6 +227,9 @@
   color: $white;
 }
 
+.u-scr {
+  overflow-y: scroll !important;
+}
 
 
 /* Utilities

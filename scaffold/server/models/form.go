@@ -28,7 +28,7 @@ type Form struct {
 	ThanksMessage string     `db:"thanks_message" json:"ThanksMessage"`
 	FormURL       string     `db:"form_url" json:"FormURL"`
 	FormFields    FormFields `json:"FormFields"`
-  SpecialForm string `db:"special_form" json:"SpecialForm"`
+	SpecialForm   string     `db:"special_form" json:"SpecialForm"`
 }
 
 var formHelperGlobal *formHelper
@@ -59,7 +59,7 @@ func newFormHelper(db *runner.DB, redis *redis.Client, validate *validator.Valid
 	helper.structDecoder = structDecoder
 
 	// Fields
-  fieldnames := []string{"form_id", "name", "date_created", "date_modified", "uuid", "submit_text", "thanks_message", "form_url", "special_form"}
+	fieldnames := []string{"form_id", "name", "date_created", "date_modified", "uuid", "submit_text", "thanks_message", "form_url", "special_form"}
 	sort.Strings(fieldnames) // sort it makes searching it work correctly
 	helper.fieldNames = fieldnames
 	helper.orderBy = "date_created, date_modified"
@@ -305,7 +305,7 @@ func (h *formHelper) save(record *Form) error {
 		Upsert("form").
 		Columns("name", "date_created", "date_modified", "uuid", "submit_text", "thanks_message", "form_url", "special_form").
 		Values(record.Name, record.DateCreated, record.DateModified, record.UUID, record.SubmitText, record.ThanksMessage, record.FormURL, record.SpecialForm).
-    Where("form_id=$1", record.FormID).
+		Where("form_id=$1", record.FormID).
 		Returning("form_id").
 		QueryStruct(record)
 

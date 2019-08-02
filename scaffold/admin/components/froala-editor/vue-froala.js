@@ -3,7 +3,7 @@ require('./froala/css/froala_editor.pkgd.min.css')
 require('./froala/css/froala_style.min.css')
 
 export default (Vue, Options = {}) => {
-  var froalaEditorFunctionality = {
+  let froalaEditorFunctionality = {
     props: ['tag', 'value', 'config', 'onManualControllerReady'],
 
     watch: {
@@ -96,6 +96,7 @@ export default (Vue, Options = {}) => {
         this.setContent(true)
 
         this.registerEvents()
+
         this._$editor = this._$element
           .froalaEditor(this.currentConfig)
           .data('froala.editor').$el
@@ -121,7 +122,7 @@ export default (Vue, Options = {}) => {
       },
 
       setNormalTagContent: function (firstTime) {
-        var self = this
+        let self = this
 
         function htmlSet () {
           self._$element.froalaEditor('html.set', self.model || '', true)
@@ -144,11 +145,11 @@ export default (Vue, Options = {}) => {
       },
 
       setSpecialTagContent: function () {
-        var tags = this.model
+        let tags = this.model
 
         // add tags on element
         if (tags) {
-          for (var attr in tags) {
+          for (let attr in tags) {
             if (tags.hasOwnProperty(attr) && attr !== this.INNER_HTML_ATTR) {
               this._$element.attr(attr, tags[attr])
             }
@@ -180,8 +181,8 @@ export default (Vue, Options = {}) => {
       },
 
       generateManualController: function () {
-        var self = this
-        var controls = {
+        let self = this
+        let controls = {
           initialize: self.createEditor,
           destroy: self.destroyEditor,
           getEditor: self.getEditor
@@ -191,14 +192,14 @@ export default (Vue, Options = {}) => {
       },
 
       updateModel: function () {
-        var modelContent = ''
+        let modelContent = ''
 
         if (this.hasSpecialTag) {
-          var attributeNodes = this._$element[0].attributes
-          var attrs = {}
+          let attributeNodes = this._$element[0].attributes
+          let attrs = {}
 
-          for (var i = 0; i < attributeNodes.length; i++) {
-            var attrName = attributeNodes[i].name
+          for (let i = 0; i < attributeNodes.length; i++) {
+            let attrName = attributeNodes[i].name
             if (
               this.currentConfig.vueIgnoreAttrs &&
               this.currentConfig.vueIgnoreAttrs.indexOf(attrName) !== -1
@@ -214,7 +215,7 @@ export default (Vue, Options = {}) => {
 
           modelContent = attrs
         } else {
-          var returnedHtml = this._$element.froalaEditor('html.get')
+          let returnedHtml = this._$element.froalaEditor('html.get')
           if (typeof returnedHtml === 'string') {
             modelContent = returnedHtml
           }
@@ -225,7 +226,7 @@ export default (Vue, Options = {}) => {
       },
 
       initListeners: function () {
-        var self = this
+        let self = this
 
         // bind contentChange and keyup event to froalaModel
         this.registerEvent(
@@ -253,12 +254,12 @@ export default (Vue, Options = {}) => {
       },
 
       registerEvents: function () {
-        var events = this.currentConfig.events
+        let events = this.currentConfig.events
         if (!events) {
           return
         }
 
-        for (var event in events) {
+        for (let event in events) {
           if (events.hasOwnProperty(event)) {
             this.registerEvent(this._$element, event, events[event])
           }
@@ -269,7 +270,7 @@ export default (Vue, Options = {}) => {
 
   Vue.component('froala', froalaEditorFunctionality)
 
-  var froalaViewFunctionality = {
+  let froalaViewFunctionality = {
     props: ['tag', 'value'],
 
     watch: {

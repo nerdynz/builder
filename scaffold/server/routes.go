@@ -4,13 +4,13 @@ import (
 	"net/http"
 
 	"github.com/go-zoo/bone"
+	"github.com/nerdynz/builder/scaffold/server/actions"
+	"github.com/nerdynz/builder/scaffold/server/models"
 	"github.com/nerdynz/datastore"
 	"github.com/nerdynz/flow"
 	"github.com/nerdynz/router"
 	"github.com/nerdynz/security"
 	"github.com/snabb/sitemap"
-	"repo.nerdy.co.nz/thecollins/thecollins/server/actions"
-	"repo.nerdy.co.nz/thecollins/thecollins/server/models"
 )
 
 var store *datastore.Datastore
@@ -41,12 +41,10 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	r.GET("/home", actions.RedirectHome, security.NoAuth)
 	r.GET("/contact", actions.ContactUs, security.NoAuth)
 
-	// r.GET("/fix", actions.Fix, security.NoAuth)
 	r.GET("/kitchen-sink", actions.KitchenSink, security.NoAuth)
 
-	// r.GET("/register", actions.Register, security.NoAuth)
 	// Scaffold routes
-	r.GET("/api/v1/views/:month/:year", actions.Views, security.NoAuth)
+	// r.GET("/api/v1/views/:month/:year", actions.Views, security.NoAuth)
 	r.GET("/api/v1/sitesettings", siteSettings, security.NoAuth)
 	r.GET("/api/v1/schema", Schema, security.NoAuth)
 	r.PST("/api/v1/login", actions.Login, security.NoAuth)
@@ -58,8 +56,6 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	r.GET("/api/v1/people/retrieve/:personID", actions.RetrievePerson, security.NoAuth)
 	r.PUT("/api/v1/people/update/:personID", actions.UpdatePerson, security.Disallow)
 
-	// r.GET("/edit/:slug", actions.EditPage, security.NoAuth)
-
 	r.GET("/api/v1/page/new", actions.NewPage, security.NoAuth)
 	r.PST("/api/v1/page/create", actions.CreatePage, security.Disallow)
 	r.GET("/api/v1/page/retrieve", actions.RetrievePages, security.NoAuth)
@@ -69,15 +65,6 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	r.DEL("/api/v1/page/delete/:pageID", actions.DeletePage, security.Disallow)
 	r.PUT("/api/v1/page/sort", actions.ChangePageSort, security.Disallow)
 
-	r.GET("/:api/v1/work/new", actions.NewWork, security.Disallow)
-	r.PST("/:api/v1/work/create", actions.CreateWork, security.Disallow)
-	r.GET("/:api/v1/work/retrieve", actions.RetrieveWorks, security.Disallow)
-	r.GET("/:api/v1/work/retrieve/:workID", actions.RetrieveWork, security.Disallow)
-	r.GET("/:api/v1/work/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.PagedWorks, security.Disallow)
-	r.PUT("/:api/v1/work/update/:workID", actions.UpdateWork, security.Disallow)
-	r.DEL("/:api/v1/work/delete/:workID", actions.DeleteWork, security.Disallow)
-	r.PUT("/:api/v1/work/sort", actions.SortWork, security.Disallow)
-
 	r.GET("/:api/v1/person/new", actions.NewPerson, security.Disallow)
 	r.PST("/:api/v1/person/create", actions.CreatePerson, security.Disallow)
 	r.GET("/:api/v1/person/retrieve", actions.RetrievePeople, security.Disallow)
@@ -86,26 +73,10 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	r.PUT("/:api/v1/person/update/:personID", actions.UpdatePerson, security.Disallow)
 	r.DEL("/:api/v1/person/delete/:personID", actions.DeletePerson, security.Disallow)
 
-	r.GET("/:api/v1/blog/new", actions.NewBlog, security.NoAuth)
-	r.PST("/:api/v1/blog/create", actions.CreateBlog, security.NoAuth)
-	r.GET("/:api/v1/blog/retrieve", actions.RetrieveBlogs, security.NoAuth)
-	r.GET("/:api/v1/blog/retrieve/:blogID", actions.RetrieveBlog, security.NoAuth)
-	r.GET("/:api/v1/blog/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.PagedBlogs, security.NoAuth)
-	r.PUT("/:api/v1/blog/update/:blogID", actions.UpdateBlog, security.Disallow)
-	r.DEL("/:api/v1/blog/delete/:blogID", actions.DeleteBlog, security.Disallow)
-
 	r.POST("/api/v1/upload/crop", actions.CroppedFileUpload, security.Disallow)
 	r.POST("/api/v1/upload/:quality/:type", actions.FileUpload, security.NoAuth)
 	r.POST("/api/v1/upload/:type", actions.FileUpload, security.NoAuth)
-
-	// r.GET("/:api/v1/imagemeta/new", actions.NewImageMeta, security.Disallow)
-	// r.PST("/:api/v1/imagemeta/create", actions.CreateImageMeta, security.Disallow)
-	r.GET("/:api/v1/imagemeta/retrieve/:uniqueid", actions.RetrieveImageMeta, security.Disallow)
-	// r.GET("/:api/v1/imagemeta/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.PagedImageMeta, security.Disallow)
-	// r.PUT("/:api/v1/imagemeta/update/:uniqueid", actions.UpdateImageMeta, security.Disallow)
-	// r.DEL("/:api/v1/imagemeta/delete/:uniqueid", actions.DeleteImageMeta, security.Disallow)
-
-	// r.GET("/testxx", actions.Test, security.NoAuth)
+	// r.GET("/:api/v1/imagemeta/retrieve/:uniqueid", actions.RetrieveImageMeta, security.Disallow)
 
 	r.GET("/sitemap.xml", websitemap, security.NoAuth)
 	r.GET("/robots.txt", robots, security.NoAuth)
@@ -117,17 +88,11 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 
 func Schema(ctx *flow.Context) {
 	data := struct {
-		Page             *models.Page
-		Block            *models.Block
-		Work             *models.Work
-		Blog             *models.Blog
-		IsSocketsEnabled bool
+		Page   *models.Page
+		Block  *models.Block
+		Person *models.Person
 	}{
-		Page:             models.PageHelper().New(),
-		Block:            models.BlockHelper().New(),
-		Work:             models.WorkHelper().New(),
-		Blog:             models.BlogHelper().New(),
-		IsSocketsEnabled: (ctx.Settings.Get("SocketsEnabled") == "true"),
+		Page: models.PageHelper().New(),
 	}
 	ctx.JSON(http.StatusOK, data)
 }

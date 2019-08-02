@@ -37,7 +37,7 @@
         fill: @floating-btn-text;
       }
 
-      i,  svg {
+      i {
         font-size: @floating-btn-font-size;
         line-height: @floating-btn-size;
       }
@@ -62,12 +62,12 @@
       right: 0;
     }
 
-    ::-moz-selection {
+    ::selection {
       background: @selection-bg;
       color: @selection-text;
     }
 
-    ::selection {
+    ::-moz-selection {
       background: @selection-bg;
       color: @selection-text;
     }
@@ -190,31 +190,12 @@
       }
     }
 
-    .fr-color-hex-layer {
-
-      .fr-input-line {
-        padding: 8px 0 0;
-      }
-
-      .fr-action-buttons {
-
-        button {
-          background-color: @ui-color;
-          .border-radius(@border-radius);
-
-          &:hover {
-            background-color: darken(@ui-color, 10%);
-          }
-        }
-      }
-    }
-
     .fr-color-set {
       line-height: 0;
 
       > span {
 
-        > i,  > svg {
+        > i {
           bottom: 0;
           left: 0;
         }
@@ -237,7 +218,6 @@
 
   .fr-drag-helper {
     background: @drag-helper-bg;
-    z-index: 2147483640;
   }
 
   &.fr-popup {
@@ -251,49 +231,45 @@
     }
   }
 
-  &.fr-popup {
+  .fr-file-upload-layer {
+    border: dashed 2px @ui-disabled-color;
+    padding: 25px 0;
 
-    .fr-file-upload-layer {
-      border: dashed 2px @ui-disabled-color;
-      padding: 25px 0;
-
-      &:hover {
-        background: @ui-hover-color;
-      }
-
-      &.fr-drop {
-        background: @ui-hover-color;
-        border-color: @ui-color;
-      }
-
-      .fr-form {
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 2147483640;
-      }
+    &:hover {
+      background: @ui-hover-color;
     }
 
-    .fr-file-progress-bar-layer {
+    &.fr-drop {
+      background: @ui-hover-color;
+      border-color: @ui-color;
+    }
 
-      > h3 {
-        margin: 10px 0;
+    .fr-form {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  .fr-file-progress-bar-layer {
+
+    > h3 {
+      margin: 10px 0;
+    }
+
+    > div.fr-loader {
+      background: mix(@white, @ui-color, 70%);
+
+      span {
+        background: @ui-color;
+        .transition(width @transition-timing);
       }
 
-      > div.fr-loader {
-        background: mix(@white, @ui-color, 70%);
+      &.fr-indeterminate {
 
         span {
-          background: @ui-color;
-          .transition(width @transition-timing);
-        }
-
-        &.fr-indeterminate {
-
-          span {
-            top: 0;
-          }
+          top: 0;
         }
       }
     }
@@ -349,52 +325,47 @@
     left: 0;
     bottom: 0;
     right: 0;
-    z-index: 2147483640;
   }
 
-  &.fr-popup {
+  .fr-image-upload-layer {
+    border: dashed 2px @ui-disabled-color;
+    padding: 25px 0;
 
-    .fr-image-upload-layer {
-      border: dashed 2px @ui-disabled-color;
-      padding: 25px 0;
-
-      &:hover {
-        background: @ui-hover-color;
-      }
-
-      &.fr-drop {
-        background: @ui-hover-color;
-        border-color: @ui-color;
-      }
-
-      .fr-form {
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 2147483640;
-      }
+    &:hover {
+      background: @ui-hover-color;
     }
 
-    .fr-image-progress-bar-layer {
+    &.fr-drop {
+      background: @ui-hover-color;
+      border-color: @ui-color;
+    }
 
-      > h3 {
-        margin: 10px 0;
+    .fr-form {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  .fr-image-progress-bar-layer {
+
+    > h3 {
+      margin: 10px 0;
+    }
+
+    > div.fr-loader {
+      background: mix(@white, @ui-color, 70%);
+
+      span {
+        background: @ui-color;
+        .transition(width @transition-timing);
       }
 
-      > div.fr-loader {
-        background: mix(@white, @ui-color, 70%);
+      &.fr-indeterminate {
 
         span {
-          background: @ui-color;
-          .transition(width @transition-timing);
-        }
-
-        &.fr-indeterminate {
-
-          span {
-            top: 0;
-          }
+          top: 0;
         }
       }
     }
@@ -577,25 +548,6 @@
 
   &.fr-popup {
 
-    .fr-table-colors-hex-layer {
-
-      .fr-input-line {
-        padding: 8px 0 0;
-      }
-
-      .fr-action-buttons {
-
-        button {
-          background-color: @ui-color;
-          .border-radius(@border-radius);
-
-          &:hover {
-            background-color: darken(@ui-color, 10%);
-          }
-        }
-      }
-    }
-
     .fr-table-size {
 
       .fr-select-table-size {
@@ -663,49 +615,45 @@
     }
   }
 
-  &.fr-popup {
+  .fr-video-upload-layer {
+    border: dashed 2px @ui-disabled-color;
+    padding: 25px 0;
 
-    .fr-video-upload-layer {
-      border: dashed 2px @ui-disabled-color;
-      padding: 25px 0;
-
-      &:hover {
-        background: @ui-hover-color;
-      }
-
-      &.fr-drop {
-        background: @ui-hover-color;
-        border-color: @ui-color;
-      }
-
-      .fr-form {
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 2147483640;
-      }
+    &:hover {
+      background: @ui-hover-color;
     }
 
-    .fr-video-progress-bar-layer {
+    &.fr-drop {
+      background: @ui-hover-color;
+      border-color: @ui-color;
+    }
 
-      > h3 {
-        margin: 10px 0;
+    .fr-form {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+  }
+
+  .fr-video-progress-bar-layer {
+
+    > h3 {
+      margin: 10px 0;
+    }
+
+    > div.fr-loader {
+      background: mix(@white, @ui-color, 70%);
+
+      span {
+        background: @ui-color;
+        .transition(width @transition-timing);
       }
 
-      > div.fr-loader {
-        background: mix(@white, @ui-color, 70%);
+      &.fr-indeterminate {
 
         span {
-          background: @ui-color;
-          .transition(width @transition-timing);
-        }
-
-        &.fr-indeterminate {
-
-          span {
-            top: 0;
-          }
+          top: 0;
         }
       }
     }
@@ -716,7 +664,6 @@
     left: 0;
     bottom: 0;
     right: 0;
-    z-index: 2147483640;
   }
 
   .link-style-mixin(@sel){
@@ -834,38 +781,6 @@
     .fr-text-bordered {
       padding: 10px 0;
     }
-
-    .fr-img-caption {
-
-      .fr-img-wrap {
-        margin: auto;
-
-        img {
-          margin: auto;
-        }
-
-        > span {
-          margin: auto;
-        }
-      }
-    }
-  }
-
-  .fr-element {
-
-    .fr-embedly {
-
-      &::after {
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-      }
-    }
-  }
-
-  &.fr-box .fr-embedly-resizer {
-    border: solid 1px @ui-color;
   }
 
   .examples-variante > a {
@@ -923,7 +838,7 @@
         width: auto;
       }
 
-      i,  svg {
+      i {
         font-size: @btn-font-size;
         width: @btn-font-size;
         margin: ((@btn-height - @btn-font-size) / 2) ((@btn-width - @btn-font-size) / 2);
@@ -953,7 +868,7 @@
           width: auto;
         }
 
-        i,  span,  img,  svg {
+        i,  span,  img {
           margin-left: (((@btn-width - @btn-font-size) / 2) - @dropdown-arrow-width);
           margin-right: (((@btn-width - @btn-font-size) / 2) + @dropdown-arrow-width);
         }
@@ -1128,7 +1043,6 @@
     left: 0;
     bottom: 0;
     right: 0;
-    z-index: 2147483640;
 
     &.fr-middle {
 
@@ -1162,11 +1076,14 @@
         border-bottom: @editor-border;
         .transition(height @transition-timing);
 
-        .fr-modal-close {
+        i {
           color: @ui-text;
-          top: 0;
-          right: 0;
-          .transition(color @transition-timing);
+
+          &.fr-modal-close {
+            top: 0;
+            right: 0;
+            .transition(color @transition-timing);
+          }
         }
 
         h4 {
@@ -1184,7 +1101,6 @@
         button.fr-command {
           color: @ui-color;
           .transition(background @transition-timing);
-          .border-radius(@border-radius);
 
           &:hover,  &:focus {
             background: @ui-hover-color;
@@ -1290,7 +1206,6 @@
       button.fr-command {
         color: @ui-color;
         .transition(background @transition-timing);
-        .border-radius(@border-radius);
 
         &:hover,  &:focus {
           background: @ui-hover-color;

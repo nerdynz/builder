@@ -1,3 +1,4 @@
+/* eslint-disable */
 ;(function (window, $) {
   'use strict'
   $.ImageUpload = function ImageUpload (options, element) {
@@ -21,37 +22,37 @@
     this.button.edit =
       '<div class="control"><div class="button is-small is-info button-edit" title="' +
       (this.options.editTitle || 'Edit') +
-      '"><i class="fa fa-pencil"></i></div></div>'
+      '"><i class="far fa-pencil"></i></div></div>'
     this.button.saving =
       '<div class="control"><div class="button is-small is-warning saving">' +
       (this.options.saveLabel || 'Saving...') +
-      ' <i class="fa fa-time"></i></div></div>'
+      ' <i class="far fa-time"></i></div></div>'
     this.button.zoomin =
       '<div class="control"><div class="button is-small button-zoom-in" title="' +
       (this.options.zoominTitle || 'Zoom in') +
-      '"><i class="fa fa-search-plus"></i></div></div>'
+      '"><i class="far fa-plus"></i></div></div>'
     this.button.zoomout =
       '<div class="control"><div class="button is-small button-zoom-out" title="' +
       (this.options.zoomoutTitle || 'Zoom out') +
-      '"><i class="fa fa-search-minus"></i></div></div>'
+      '"><i class="far fa-minus"></i></div></div>'
     this.button.zoomreset =
       '<div class="control"><div class="button is-small button-zoom-reset" title="' +
       (this.options.zoomresetTitle || 'Reset') +
-      '"><i class="fa fa-refresh"></i></div></div>'
-    // this.button.rotatecw = '<div class="control"><div class="button is-small button-rotate-cw" title="' + (this.options.cwTitle || 'Rotate clockwise') + '"><i class="fa fa-share"></i></div></div>';
-    // this.button.rotateccw= '<div class="control"><div class="button is-small button-rotate-ccw" title="' + (this.options.ccwTitle || 'Rotate counter clockwise') + '"><i class="fa fa-share icon-flipped"></i></div></div>';
+      '"><i class="far fa-sync"></i></div></div>'
+    // this.button.rotatecw = '<div class="control"><div class="button is-small button-rotate-cw" title="' + (this.options.cwTitle || 'Rotate clockwise') + '"><i class="far fa-share"></i></div></div>';
+    // this.button.rotateccw= '<div class="control"><div class="button is-small button-rotate-ccw" title="' + (this.options.ccwTitle || 'Rotate counter clockwise') + '"><i class="far fa-share icon-flipped"></i></div></div>';
     this.button.cancel =
       '<div class="control"><div class="button is-small is-danger button-cancel" title="' +
       (this.options.cancelTitle || 'Cancel') +
-      '"><i class="fa fa-remove"></i></div></div>'
+      '"><i class="far fa-trash"></i></div></div>'
     this.button.done =
       '<div class="control"><div class="button is-small is-success button-ok" title="' +
       (this.options.okTitle || 'Ok') +
-      '"><i class="fa fa-check"></i></div></div>'
+      '"><i class="far fa-check"></i></div></div>'
     this.button.del =
       '<div class="control"><div class="button is-small is-danger button-del" title="' +
       (this.options.delTitle || 'Delete') +
-      '"><i class="fa fa-trash"></i></div></div>'
+      '"><i class="far fa-trash"></i></div></div>'
 
     this.button.download =
       '<a class="button is-small button-warning download"><i class="fa fa-download"></i> ' +
@@ -60,7 +61,7 @@
 
     this.button.fullscreen = '<div class="control"><div class="button is-small button-zoom-reset" title="' +
       (this.options.fullscreenTitle || 'Fullscreen') +
-      '"><i class="fa fa-arrows-alt"></i></div></div>'
+      '"><i class="far fa-expand-arrows-alt"></i></div></div>'
     // this.imageExtensions = {png: 'png', bmp: 'bmp', gif: 'gif', jpg: ['jpg','jpeg'], tiff: 'tiff'};
     this.imageMimes = {
       png: 'image/png',
@@ -224,6 +225,9 @@
         $(window).resize(function () {
           _self.resize()
         })
+        setTimeout(function () {
+          _self.resize()
+        }, 10)
       }
       _self._bind()
 
@@ -358,7 +362,7 @@
           continue
         }
 
-        var reader = new window.FileReader()
+        var reader = new FileReader()
 
         reader.onload = (function (theFile) {
           // console.log(theFile);
@@ -383,7 +387,7 @@
       var element = this.element
       _self.drag = false
 
-      var img = new window.Image()
+      var img = new Image()
       img.onload = function (tmp) {
         var imgElement = $('<img src="' + src + '" name="' + name + '" />')
         var width, height, useWidth, useHeight, ratio, elementRatio
@@ -704,11 +708,14 @@
             finalHeight +
             '" style="position:absolute; top: -1px; bottom: 0; left:  -1px; right: 0; z-index:100; width: calc(100% + 2px); height: calc(100% + 2px);"></canvas>'
         )
-
         $(element).append(canvas)
 
         var canvasContext = $(canvas)[0].getContext('2d')
-        var imageObj = new window.Image()
+        if (options.background) {
+          canvasContext.fillStyle = options.background
+          canvasContext.fillRect(0, 0, finalWidth, finalHeight)
+        }
+        var imageObj = new Image()
 
         // canvasContext.fillStyle = "rgba(255, 255, 255, 0)";
         // canvasContext.clearRect(0,0,finalWidth,finalHeight);
@@ -722,12 +729,15 @@
               '"></canvas>'
           )
           var canvasTmpContext = $(canvasTmp)[0].getContext('2d')
-
+          if (options.background) {
+            canvasTmpContext.fillStyle = options.background
+            canvasTmpContext.fillRect(0, 0, finalWidth, finalHeight)
+          }
           // canvasTmpContext.fillStyle = "rgba(255, 255, 255, 0)";
           // canvasTmpContext.clearRect(0,0,imageWidth,imageHeight);
           canvasTmpContext.drawImage(imageObj, 0, 0, imageWidth, imageHeight)
           // $(element).append(canvasTmp);
-          var tmpObj = new window.Image()
+          var tmpObj = new Image()
           tmpObj.onload = function () {
             if (options.canvasImageOnly === true) {
               var _imageWidth = imageWidth
@@ -753,6 +763,10 @@
               var canvasImageOnlyContext = $(canvasImageOnly)[0].getContext(
                 '2d'
               )
+              if (options.background) {
+                canvasImageOnlyContext.fillStyle = options.background
+                canvasImageOnlyContext.fillRect(0, 0, finalWidth, finalHeight)
+              }
               canvasImageOnlyContext.drawImage(
                 tmpObj,
                 finalLeft < 0 ? finalLeft : 0,
@@ -872,7 +886,6 @@
       if (options.dimensionsonly === true) {
         delete obj.data
       }
-
       $.ajax({
         type: 'POST',
         url: options.url,

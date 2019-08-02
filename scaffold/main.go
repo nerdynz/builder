@@ -3,19 +3,18 @@ package main
 import (
 	"html/template"
 	"net/http"
-	//
+
+	"github.com/nerdynz/builder/scaffold/server"
+	"github.com/nerdynz/builder/scaffold/server/models"
 	"github.com/nerdynz/datastore"
 	"github.com/unrolled/render"
 	"github.com/urfave/negroni"
-	"repo.nerdy.co.nz/thecollins/thecollins/server"
-	"repo.nerdy.co.nz/thecollins/thecollins/server/models"
 )
 
 func main() {
 	n := negroni.New(negroni.NewRecovery(), negroni.NewLogger())
-
 	store := datastore.New()
-
+	// defer store.Cleanup()
 	renderer := render.New(render.Options{
 		Layout:     "application",
 		Extensions: []string{".html"},

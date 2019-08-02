@@ -18,17 +18,18 @@
         wf.async = true;
         s.parentNode.insertBefore(wf, s);
     })(document);
+    window.status = "pdf-ready"
   </script>
   </head>
   <body>
     <div class="custom-error center">
-      <div class="custom-error-body content muted"><a href="#" onclick="document.getElementById('nasty').style.display = 'block';return false;"><i class="fa fa-exclamation-triangle fa-3x"></i></a>
+      <div class="custom-error-body content muted"><a href="#" onclick="document.getElementById('nasty').style.display = 'block';return false;"><i class="far fa-exclamation-triangle fa-3x"></i></a>
         <h1 class="title">Error {{.ErrorCode}} </h1>
         <p>{{.FriendlyError}}</p>
         <div id="nasty" style="display:none;">{{.NastyError}}</div>
        </div>
       <div class="custom-error-footer">
-        <a onclick="history.go(-1);return false;" class="custom-error-go-back button pull-left" title="Go back" href="#"><i class="fa fa-arrow-left"></i> </a>
+        <a onclick="history.go(-1);return false;" class="custom-error-go-back button pull-left" title="Go back" href="#"><i class="far fa-arrow-left"></i> </a>
       </div>
     </div>
   </body>

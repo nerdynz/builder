@@ -34,12 +34,10 @@
 
       &.fr-fil {
         margin-left: 0;
-        text-align: left;
       }
 
       &.fr-fir {
         margin-right: 0;
-        text-align: right;
       }
     }
 
@@ -63,37 +61,24 @@
         max-width: calc(100% - @image-margin);
       }
     }
+
+    &.fr-rounded {
+      .border-radius(100%);
+    }
+
+    &.fr-bordered {
+      border: solid 10px #CCC;
+	  .box-sizing(content-box);
+    }
   }
 }
 
 .image-style(@cls: '') when not (@cls = '') {
   .image-style-mixin(~'img.@{cls}');
-  .image-style-mixin(~'span.fr-img-caption.@{cls}');
 }
 
 .image-style(@cls: '') when (@cls = '') {
   .image-style-mixin(~'img');
-  .image-style-mixin(~'span.fr-img-caption');
-}
-
-img.fr-rounded, .fr-img-caption.fr-rounded img {
-  .border-radius(10px);
-}
-
-img.fr-bordered, .fr-img-caption.fr-bordered img {
-  border: solid 5px #CCC;
-}
-
-img.fr-bordered {
- .box-sizing(content-box);
-}
-
-.fr-img-caption.fr-bordered img {
- .box-sizing(border-box);
-}
-
-img.fr-shadow, .fr-img-caption.fr-shadow img {
- .material-box-shadow(1);
 }
 
 .video-style(@cls: '') {
@@ -149,10 +134,6 @@ img.fr-shadow, .fr-img-caption.fr-shadow img {
     empty-cells: show;
     max-width: 100%;
 
-    td {
-      min-width: 5px;
-    }
-
     // Table style.
     &.fr-dashed-borders {
       td, th {
@@ -207,7 +188,6 @@ img.fr-shadow, .fr-img-caption.fr-shadow img {
   pre {
     white-space: pre-wrap;
     word-wrap: break-word;
-    overflow: visible;
   }
 
   &[dir="rtl"] {
@@ -288,36 +268,6 @@ img.fr-shadow, .fr-img-caption.fr-shadow img {
   .video-style();
 
   .link-style();
-
-  .fr-img-caption {
-    text-align: center;
-
-    .fr-img-wrap {
-      padding: 0px;
-      display: inline-block;
-      margin: auto;
-      text-align: center;
-      width: 100%;
-
-      img {
-        display: block;
-        margin: auto;
-        width: 100%;
-      }
-
-      > span {
-        margin: auto;
-        display: block;
-        padding: 5px 5px 10px;
-        font-size: 14px;
-        font-weight: initial;
-        .box-sizing(border-box);
-        .opacity(0.9);
-        width: 100%;
-        text-align: center;
-      }
-    }
-  }
 
   button, input, textarea {
     &.fr-rounded {

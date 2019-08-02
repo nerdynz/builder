@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -54,7 +54,7 @@
         print_iframe.style.height = '100%';
         print_iframe.style.width = '0';
         print_iframe.style.overflow = 'hidden';
-        print_iframe.style['z-index'] = '2147483647';
+        print_iframe.style['z-index'] = '9999';
         print_iframe.style.tabIndex = '-1';
         document.body.appendChild(print_iframe);
 

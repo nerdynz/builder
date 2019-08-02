@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -42,8 +42,7 @@
       H4: 'Heading 4',
       PRE: 'Code'
     },
-    paragraphFormatSelection: false,
-    paragraphDefaultSelection: 'Paragraph Format'
+    paragraphFormatSelection: false
   })
 
   $.FE.PLUGINS.paragraphFormat = function (editor) {
@@ -85,9 +84,17 @@
       var defaultTag = editor.html.defaultTag();
 
       // Prepare a temp div.
-      if (!val || val.toLowerCase() == defaultTag) val = 'div class="fr-temp-div"';
+      if (!val) val = 'div class="fr-temp-div" data-empty="true"';
 
-      $blk.replaceWith($('<' + val + '>').html($blk.html()));
+      // In list we don't have P so just unwrap content.
+      if (val.toLowerCase() == defaultTag) {
+        $blk.replaceWith($blk.html());
+      }
+
+      // Replace the current block with the new one.
+      else {
+        $blk.replaceWith($('<' + val + '>').html($blk.html()));
+      }
     }
 
     /**
@@ -134,7 +141,7 @@
 
       // Wrap.
       editor.selection.save();
-      editor.html.wrap(true, true, !editor.opts.paragraphFormat.BLOCKQUOTE, true, true);
+      editor.html.wrap(true, true, true, true);
       editor.selection.restore();
 
       // Get blocks.
@@ -243,10 +250,8 @@
     displaySelection: function (editor) {
       return editor.opts.paragraphFormatSelection;
     },
-    defaultSelection: function (editor) {
-      return editor.language.translate(editor.opts.paragraphDefaultSelection);
-    },
-    displaySelectionWidth: 125,
+    defaultSelection: 'Normal',
+    displaySelectionWidth: 100,
     html: function () {
       var c = '<ul class="fr-dropdown-list" role="presentation">';
       var options =  this.opts.paragraphFormat;

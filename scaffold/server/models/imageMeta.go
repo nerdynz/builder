@@ -14,7 +14,6 @@ import (
 	"sort"
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	validator "gopkg.in/go-playground/validator.v9"
 	redis "gopkg.in/redis.v5"
 )
 
@@ -61,7 +60,7 @@ func getBytesFromBase64(data string, ext string) ([]byte, error) {
 	if ext == "png" {
 		spliter = "data:image/png;base64,"
 	}
-	d := data[len(spliter):len(data)]
+	d := data[len(spliter):]
 	return base64.StdEncoding.DecodeString(d)
 }
 
@@ -76,7 +75,6 @@ type ImageMetas []*ImageMeta
 type imageMetaHelper struct {
 	DB            *runner.DB
 	Cache         *redis.Client
-	Validator     *validator.Validate
 	structDecoder *schema.Decoder
 	fieldNames    []string
 	orderBy       string
@@ -84,16 +82,15 @@ type imageMetaHelper struct {
 
 func ImageMetaHelper() *imageMetaHelper {
 	if imageMetaHelperGlobal == nil {
-		imageMetaHelperGlobal = newImageMetaHelper(modelDB, modelCache, modelValidator, modelDecoder)
+		imageMetaHelperGlobal = newImageMetaHelper(modelDB, modelCache, modelDecoder)
 	}
 	return imageMetaHelperGlobal
 }
 
-func newImageMetaHelper(db *runner.DB, redis *redis.Client, validate *validator.Validate, structDecoder *schema.Decoder) *imageMetaHelper {
+func newImageMetaHelper(db *runner.DB, redis *redis.Client, structDecoder *schema.Decoder) *imageMetaHelper {
 	helper := &imageMetaHelper{}
 	helper.DB = db
 	helper.Cache = redis
-	helper.Validator = validate
 	helper.structDecoder = structDecoder
 
 	// Fields
@@ -270,13 +267,7 @@ func (h *imageMetaHelper) Save(record *ImageMeta) error {
 	// was just modified
 	record.DateModified = time.Now()
 
-	// check validation
-	_, err := h.Validate(record)
-	if err != nil {
-		return err
-	}
-
-	err = h.save(record)
+	err := h.save(record)
 	if err != nil {
 		return err
 	}
@@ -293,12 +284,6 @@ func (h *imageMetaHelper) SaveMany(records ImageMetas) error {
 
 		// was just modified
 		record.DateModified = time.Now()
-
-		// check validation
-		_, err := h.Validate(record)
-		if err != nil {
-			return err
-		}
 	}
 
 	for _, record := range records {
@@ -326,15 +311,6 @@ func (h *imageMetaHelper) save(record *ImageMeta) error {
 	}
 
 	return nil
-}
-
-// Validate a record
-func (h *imageMetaHelper) Validate(record *ImageMeta) (bool, error) {
-	validationErrors := h.Validator.Struct(record)
-	if validationErrors != nil {
-		return false, validationErrors
-	}
-	return true, nil
 }
 
 func (h *imageMetaHelper) Delete(recordID int) (bool, error) {

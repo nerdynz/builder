@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -53,33 +53,32 @@
     videoSizeButtons: ['videoBack', '|'],
     videoSplitHTML: false,
     videoTextNear: true,
-    videoUpload: true,
     videoUploadMethod: 'POST',
     videoUploadParam: 'file',
     videoUploadParams: {},
     videoUploadToS3: false,
-    videoUploadURL: null
+    videoUploadURL: 'https://i.froala.com/upload'
   });
 
   $.FE.VIDEO_PROVIDERS = [
     {
       test_regex: /^.*((youtu.be)|(youtube.com))\/((v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))?\??v?=?([^#\&\?]*).*/,
       url_regex: /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/)?([0-9a-zA-Z_\-]+)(.+)?/g,
-      url_text: 'https://www.youtube.com/embed/$1',
+      url_text: '//www.youtube.com/embed/$1',
       html: '<iframe width="640" height="360" src="{url}?wmode=opaque" frameborder="0" allowfullscreen></iframe>',
       provider: 'youtube'
     },
     {
       test_regex: /^.*(?:vimeo.com)\/(?:channels(\/\w+\/)?|groups\/*\/videos\/​\d+\/|video\/|)(\d+)(?:$|\/|\?)/,
-      url_regex: /(?:https?:\/\/)?(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:[a-zA-Z0-9_\-]+)?(\/[a-zA-Z0-9_\-]+)?/i,
-      url_text: 'https://player.vimeo.com/video/$1',
+      url_regex: /(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:[a-zA-Z0-9_\-]+)?/i,
+      url_text: '//player.vimeo.com/video/$1',
       html: '<iframe width="640" height="360" src="{url}" frameborder="0" allowfullscreen></iframe>',
       provider: 'vimeo'
     },
     {
       test_regex: /^.+(dailymotion.com|dai.ly)\/(video|hub)?\/?([^_]+)[^#]*(#video=([^_&]+))?/,
       url_regex: /(?:https?:\/\/)?(?:www\.)?(?:dailymotion\.com|dai\.ly)\/(?:video|hub)?\/?(.+)/g,
-      url_text: 'https://www.dailymotion.com/embed/video/$1',
+      url_text: '//www.dailymotion.com/embed/video/$1',
       html: '<iframe width="640" height="360" src="{url}" frameborder="0" allowfullscreen></iframe>',
       provider: 'dailymotion'
     },
@@ -93,14 +92,14 @@
     {
       test_regex: /^.+(rutube.ru)\/[^_&]+/,
       url_regex: /(?:https?:\/\/)?(?:www\.)?(?:rutube\.ru)\/(?:video)?\/?(.+)/g,
-      url_text: 'https://rutube.ru/play/embed/$1',
+      url_text: '//rutube.ru/play/embed/$1',
       html: '<iframe width="640" height="360" src="{url}" frameborder="0" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true" allowtransparency="true"></iframe>',
       provider: 'rutube'
     },
     {
       test_regex: /^(?:.+)vidyard.com\/(?:watch)?\/?([^.&/]+)\/?(?:[^_.&]+)?/,
       url_regex: /^(?:.+)vidyard.com\/(?:watch)?\/?([^.&/]+)\/?(?:[^_.&]+)?/g,
-      url_text: 'https://play.vidyard.com/$1',
+      url_text: '//play.vidyard.com/$1',
       html: '<iframe width="640" height="360" src="{url}" frameborder="0" allowfullscreen></iframe>',
       provider: 'vidyard'
     }
@@ -109,8 +108,6 @@
   $.FE.VIDEO_EMBED_REGEX = /^\W*((<iframe.*><\/iframe>)|(<embed.*>))\W*$/i;
 
   $.FE.PLUGINS.video = function (editor) {
-    var DEFAULT_VIDEO_UPLOAD_URL = 'https://i.froala.com/upload'
-
     var $overlay;
     var $handler;
     var $video_resizer;
@@ -165,15 +162,9 @@
         editor.popups.refresh('video.insert');
         editor.popups.setContainer('video.insert', editor.$tb);
 
-        if ($btn.is(':visible')) {
-          var left = $btn.offset().left + $btn.outerWidth() / 2;
-          var top = $btn.offset().top + (editor.opts.toolbarBottom ? 10 : $btn.outerHeight() - 10);
-          editor.popups.show('video.insert', left, top, $btn.outerHeight());
-        }
-        else {
-          editor.position.forSelection($popup);
-          editor.popups.show('video.insert');
-        }
+        var left = $btn.offset().left + $btn.outerWidth() / 2;
+        var top = $btn.offset().top + (editor.opts.toolbarBottom ? 10 : $btn.outerHeight() - 10);
+        editor.popups.show('video.insert', left, top, $btn.outerHeight());
       }
     }
 
@@ -208,10 +199,6 @@
       // Video buttons.
       var video_buttons = '';
 
-      if (!editor.opts.videoUpload) {
-        editor.opts.videoInsertButtons.splice(editor.opts.videoInsertButtons.indexOf('videoUpload'), 1);
-      }
-
       if (editor.opts.videoInsertButtons.length > 1) {
         video_buttons = '<div class="fr-buttons">' + editor.button.buildList(editor.opts.videoInsertButtons) + '</div>';
       }
@@ -232,7 +219,7 @@
           active = ''
         }
 
-        by_url_layer = '<div class="fr-video-by-url-layer fr-layer' + active + '" id="fr-video-by-url-layer-' + editor.id + '"><div class="fr-input-line"><input id="fr-video-by-url-layer-text-' + editor.id + '" type="text" placeholder="' + editor.language.translate('Paste in a video URL') + '" tabIndex="1" aria-required="true"></div><div class="fr-action-buttons"><button type="button" class="fr-command fr-submit" data-cmd="videoInsertByURL" tabIndex="2" role="button">' + editor.language.translate('Insert') + '</button></div></div>'
+        by_url_layer = '<div class="fr-video-by-url-layer fr-layer' + active + '" id="fr-video-by-url-layer-' + editor.id + '"><div class="fr-input-line"><input id="fr-video-by-url-layer-text-' + editor.id + '" type="text" placeholder="http://" tabIndex="1" aria-required="true"></div><div class="fr-action-buttons"><button type="button" class="fr-command fr-submit" data-cmd="videoInsertByURL" tabIndex="2" role="button">' + editor.language.translate('Insert') + '</button></div></div>'
       }
 
       // Video embed layer.
@@ -591,14 +578,10 @@
     function insertByURL (link) {
       if (typeof link == 'undefined') {
         var $popup = editor.popups.get('video.insert');
-        link = ($popup.find('.fr-video-by-url-layer input[type="text"]').val() || '').trim();
+        link = $popup.find('.fr-video-by-url-layer input[type="text"]').val() || '';
       }
 
       var video = null;
-
-      if (!/^http/.test(link)) {
-        link = 'https://' + link;
-      }
 
       if (editor.helpers.isURL(link)) {
         for (var i = 0; i < $.FE.VIDEO_PROVIDERS.length; i++) {
@@ -817,7 +800,6 @@
         editor.markers.insert();
       }
 
-      editor.html.wrap();
       var $marker = editor.$el.find('.fr-marker');
 
       // Do not insert video inside emoticon.
@@ -828,6 +810,7 @@
 
       $marker.replaceWith($video);
 
+      editor.html.wrap();
       editor.selection.clear();
 
       if ($video.find('video').get(0).readyState > $video.find('video').get(0).HAVE_FUTURE_DATA || editor.helpers.isIOS()) {
@@ -869,7 +852,7 @@
         var editor_inside_iframe = false;
 
         try {
-          editor_inside_iframe = (win.location != win.parent.location && !(win.$ && win.$.FE));
+          editor_inside_iframe = win.location != win.parent.location;
         }
         catch (ex) {
         }
@@ -1100,7 +1083,7 @@
     function _syncVideos () {
 
       // Get current videos.
-      var c_videos = Array.prototype.slice.call(editor.el.querySelectorAll('video, .fr-video > *'));
+      var c_videos = Array.prototype.slice.call(editor.el.querySelectorAll('video'));
 
       // Current videos src.
       var video_srcs = [];
@@ -1143,8 +1126,8 @@
       $video_resizer
         .css('top', (editor.opts.iframe ? $video_obj.offset().top - 1 : $video_obj.offset().top - editor.$wp.offset().top - 1) + editor.$wp.scrollTop())
         .css('left', (editor.opts.iframe ? $video_obj.offset().left - 1 : $video_obj.offset().left - editor.$wp.offset().left - 1) + editor.$wp.scrollLeft())
-        .css('width', $video_obj.get(0).getBoundingClientRect().width)
-        .css('height', $video_obj.get(0).getBoundingClientRect().height)
+        .css('width', $video_obj.outerWidth())
+        .css('height', $video_obj.height())
         .addClass('fr-active');
     }
 
@@ -1187,11 +1170,8 @@
         editor.events.enableBlur();
       }
 
-      // Unselect all other videos.
-      editor.$el.find('.fr-video.fr-active').removeClass('fr-active');
-
       $current_video = $(this);
-      $current_video.addClass('fr-active');
+      $(this).addClass('fr-active');
 
       if (editor.opts.iframe) {
         editor.size.syncIframe();
@@ -1247,14 +1227,6 @@
         var vid = dt.files[0];
 
         if (vid && vid.type && vid.type.indexOf('video') !== -1) {
-          if (!editor.opts.videoUpload) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            return false;
-          }
-
-
           editor.markers.remove();
           editor.markers.insertAtPoint(e.originalEvent);
           editor.$el.find('.fr-marker').replaceWith($.FE.MARKERS);
@@ -1289,33 +1261,6 @@
       }
     }
 
-    function _browserUpload (video) {
-      var reader = new FileReader();
-
-      reader.addEventListener('load', function () {
-        var link = reader.result;
-
-        // Convert image to local blob.
-        var binary = atob(reader.result.split(',')[1]);
-        var array = [];
-
-        for (var i = 0; i < binary.length; i++) {
-          array.push(binary.charCodeAt(i));
-        }
-
-        // Get local image link.
-        link = window.URL.createObjectURL(new Blob([new Uint8Array(array)], {
-          type: video.type
-        }));
-
-        insertHtmlVideo(link, false, null, $current_video);
-      }, false);
-
-      showProgressBar();
-
-      reader.readAsDataURL(video)
-    }
-
     /**
      * Do video upload.
      */
@@ -1331,13 +1276,6 @@
         }
 
         var video = videos[0];
-
-        // Upload as blob for testing purposes.
-        if (editor.opts.videoUploadURL === null || editor.opts.videoUploadURL == DEFAULT_VIDEO_UPLOAD_URL) {
-          _browserUpload(video)
-
-          return false;
-        }
 
         // Check video max size.
         if (video.size > editor.opts.videoMaxSize) {
@@ -1442,14 +1380,14 @@
         $(this).addClass('fr-drop');
 
         return false;
-      }, true);
+      });
 
       // Drag end.
       editor.events.$on($popup, 'dragleave dragend', '.fr-video-upload-layer', function () {
         $(this).removeClass('fr-drop');
 
         return false;
-      }, true);
+      });
 
       // Drop.
       editor.events.$on($popup, 'drop', '.fr-video-upload-layer', function (e) {
@@ -1466,12 +1404,12 @@
           inst.video.upload(dt.files);
           inst.events.enableBlur();
         }
-      }, true);
+      });
 
       if (editor.helpers.isIOS()) {
-        editor.events.$on($popup, 'touchstart', '.fr-video-upload-layer input[type="file"]', function () {
+        editor.events.$on($popup, 'touchend', '.fr-video-upload-layer input[type="file"]', function () {
           $(this).trigger('click');
-        }, true);
+        });
       }
 
       editor.events.$on($popup, 'change', '.fr-video-upload-layer input[type="file"]', function () {
@@ -1486,7 +1424,7 @@
         // Else IE 9 case.
         // Chrome fix.
         $(this).val('');
-      }, true);
+      });
     }
 
     /**
@@ -1507,7 +1445,7 @@
         }
       });
 
-      editor.events.on('video.hideResizer commands.undo commands.redo element.dropped', function () {
+      editor.events.on('blur video.hideResizer commands.undo commands.redo element.dropped', function () {
         _exitEdit(true);
       });
     }
@@ -2002,11 +1940,7 @@
       editor.events.$on(editor.$el, 'mousedown', 'span.fr-video', function (e) {
         e.stopPropagation();
       })
-      editor.events.$on(editor.$el, 'click touchend', 'span.fr-video', function (e) {
-        if ($(this).parents('[contenteditable]:not(.fr-element):not(.fr-img-caption):not(body):first').attr('contenteditable') == 'false') return true;
-
-        _edit.call(this, e);
-      });
+      editor.events.$on(editor.$el, 'click touchend', 'span.fr-video', _edit);
 
       editor.events.on('keydown', function (e) {
         var key_code = e.which;
@@ -2014,7 +1948,6 @@
         if ($current_video && (key_code == $.FE.KEYCODE.BACKSPACE || key_code == $.FE.KEYCODE.DELETE)) {
           e.preventDefault();
           remove();
-          editor.undo.saveStep();
 
           return false;
         }
@@ -2055,11 +1988,6 @@
       editor.events.on('keydown', function () {
         editor.$el.find('span.fr-video:empty').remove();
       })
-
-      if (editor.$wp) {
-        _syncVideos();
-        editor.events.on('contentChanged', _syncVideos);
-      }
 
       _initInsertPopup(true);
       _initSizePopup(true);
@@ -2172,8 +2100,7 @@
 
   // Add the font size icon.
   $.FE.DefineIcon('insertVideo', {
-    NAME: 'video-camera',
-    FA5NAME: 'camera'
+    NAME: 'video-camera'
   });
 
   // Video by URL button inside the insert video popup.
@@ -2299,8 +2226,7 @@
 
   // Video replace.
   $.FE.DefineIcon('videoReplace', {
-    NAME: 'exchange',
-    FA5NAME: 'exchange-alt'
+    NAME: 'exchange'
   })
   $.FE.RegisterCommand('videoReplace', {
     title: 'Replace',

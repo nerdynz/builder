@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -36,7 +36,7 @@
   $.extend($.FE.DEFAULTS, {
     wordDeniedTags: [],
     wordDeniedAttrs: [],
-    wordAllowedStyleProps: ['font-family', 'font-size', 'background', 'color', 'width', 'text-align', 'vertical-align', 'background-color', 'padding', 'margin', 'height', 'margin-top', 'margin-left', 'margin-right', 'margin-bottom', 'text-decoration', 'font-weight', 'font-style', 'text-indent'],
+    wordAllowedStyleProps: ['font-family', 'font-size', 'background', 'color', 'width', 'text-align', 'vertical-align', 'background-color', 'padding', 'margin', 'height', 'margin-top', 'margin-left', 'margin-right', 'margin-bottom'],
     wordPasteModal: true
   });
 
@@ -136,36 +136,17 @@
         editor.opts.wordAllowedStyleProps = [];
       }
 
+      // Strip spaces at the beginning.
+      clipboard_html = clipboard_html.replace(/^\n*/g, '').replace(/^ /g, '');
+
       // Firefox paste.
       if (clipboard_html.indexOf('<colgroup>') === 0) {
         clipboard_html = '<table>' + clipboard_html + '</table>';
       }
 
-
-      // Replace spaces.
-      clipboard_html = clipboard_html.replace(/<span[\n\r ]*style='mso-spacerun:yes'>([\r\n\u00a0 ]*)<\/span>/g, function (str, match) {
-        var spaces = '';
-        var i = 0;
-
-        while (i++ < match.length) {
-          spaces += '&nbsp;';
-        }
-
-        return spaces;
-      });
-
       clipboard_html = _wordClean(clipboard_html, editor.paste.getRtfClipboard());
 
-      // Remove unwanted spaces.
-      var div = editor.doc.createElement('DIV');
-      div.innerHTML = clipboard_html;
-      editor.html.cleanBlankSpaces(div);
-      clipboard_html = div.innerHTML;
-
-      clipboard_html = editor.paste.cleanEmptyTagsAndDivs(clipboard_html);
-
-      // Remove invisible space.
-      clipboard_html = clipboard_html.replace(/\u200b/g, '');
+      clipboard_html = editor.paste.removeEmptyTags(clipboard_html);
 
       _hideModal();
 
@@ -250,9 +231,18 @@
     }
 
     /*
+     * Check if a node has mso-list:Ignore in its style attribute.
+     */
+    function _isMsoListIgnore (node) {
+
+      return node.nodeType == Node.ELEMENT_NODE && node.getAttribute('style') && node.getAttribute('style').replace(/\n/gi, '').indexOf('mso-list:Ignore') != -1;
+    }
+
+    /*
      * Check if a node is a list. TODO: use Regex.
      */
     function _isList (node) {
+
       // Check if it has mso-list:l in its style attribute.
       if (!(node.getAttribute('style') && /mso-list:[\s]*l/gi.test(node.getAttribute('style').replace(/\n/gi, '')))) {
 
@@ -261,8 +251,12 @@
 
       // Using try-catch to skip undefined checking.
       try {
+
         // Check mso-list.
-        if (!node.querySelector('[style="mso-list:Ignore"]')) {
+        var posible_mso_list_ignore = node.firstElementChild.firstElementChild;
+        var posible_mso_list_ignore_wrapped = posible_mso_list_ignore.firstElementChild ? posible_mso_list_ignore.firstElementChild : null;
+
+        if (!_isMsoListIgnore(posible_mso_list_ignore) && !_isMsoListIgnore(posible_mso_list_ignore_wrapped)) {
 
           return false;
         }
@@ -291,9 +285,12 @@
       var cloned_node = node.cloneNode(true);
 
       // Some lists might be wrapped in a link. So we need to unwrap.
-      // if (cloned_node.firstElementChild && cloned_node.firstElementChild.tagName == 'A') {
-      //   cloned_node = cloned_node.firstElementChild;
-      // }
+      if (cloned_node.firstElementChild && cloned_node.firstElementChild.tagName == 'A') {
+        cloned_node = cloned_node.firstElementChild;
+      }
+
+      // Skip the first child which is an mso-list:Ignore node.
+      _removeNode(cloned_node.firstElementChild);
 
       // Heading list.
       if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].indexOf(node.tagName) != -1) {
@@ -306,12 +303,6 @@
       // Clean node recursively.
       _traverse(cloned_node, function (node) {
         if (node.nodeType == Node.ELEMENT_NODE) {
-
-          // Skip the first child which is an mso-list:Ignore node.
-          if (node.getAttribute('style') == 'mso-list:Ignore') {
-            node.parentNode.removeChild(node);
-          }
-
           _cleanElement(node, head_style_hash);
         }
 
@@ -337,10 +328,10 @@
       var is_ordered = false;
 
       if (node.firstElementChild && node.firstElementChild.firstElementChild && node.firstElementChild.firstElementChild.firstChild) {
-        is_ordered = is_ordered || order_regex.test(node.firstElementChild.firstElementChild.firstChild.data || '');
+        is_ordered = is_ordered || order_regex.test(node.firstElementChild.firstElementChild.firstChild.data);
 
         if (!is_ordered && node.firstElementChild.firstElementChild.firstElementChild && node.firstElementChild.firstElementChild.firstElementChild.firstChild) {
-          is_ordered = is_ordered || order_regex.test(node.firstElementChild.firstElementChild.firstElementChild.firstChild.data || '');
+          is_ordered = is_ordered || order_regex.test(node.firstElementChild.firstElementChild.firstElementChild.firstChild.data);
         }
       }
 
@@ -490,6 +481,46 @@
         while (td_child) {
 
           if (td_child.tagName == 'P' && !_isList(td_child)) {
+            var child_clone = null;
+
+            // Only one span inside.
+            if (td_child.children.length == 1 && td_child.firstElementChild && td_child.firstElementChild.tagName == 'SPAN') {
+
+              if (editor.node.openTagString(td_child.firstElementChild) === '<span lang="EN-US">') {
+                td_child.firstElementChild.outerHTML = td_child.firstElementChild.innerHTML;
+              }
+              else {
+
+                child_clone = td_child.firstElementChild;
+
+                if (!has_single_child) {
+                  child_clone = _changeTagName(child_clone, 'div');
+                }
+
+                if (!has_single_child) {
+                  _appendStyle(child_clone, td_child.getAttribute('style'));
+                }
+                else {
+                  _appendStyle(child, td_child.getAttribute('style'));
+                }
+
+                child.replaceChild(child_clone, td_child);
+              }
+            }
+
+            // Many spans.
+            else {
+              child_clone = _changeTagName(td_child, has_single_child ? 'span' : 'div');
+
+              if (!has_single_child &&child_clone.getAttribute('align')) {
+                child_clone.removeAttribute('align')
+              }
+            }
+
+            if (child_clone) {
+              td_child = child_clone;
+            }
+
             // Set alignment to td parent.
             if (has_single_child) {
               _cleanAlignment(td_child);
@@ -646,11 +677,18 @@
      */
     function _cleanAlignment (el) {
 
+      var parent = el.parentNode;
       var align = el.getAttribute('align');
 
       if (align) {
-        el.style['text-align'] = align;
-        el.removeAttribute('align');
+        if (parent && parent.tagName == 'TD') {
+          parent.setAttribute('style', parent.getAttribute('style') + 'text-align:' + align + ';')
+          el.removeAttribute('align');
+        }
+        else {
+          el.style['text-align'] = align;
+          el.removeAttribute('align');
+        }
       }
     }
 
@@ -790,94 +828,6 @@
       return btoa(dec);
     }
 
-    var _rtf_map = null;
-
-    function _getRtfData(rtf, letter, p_type) {
-      var imgs = rtf.split(p_type);
-
-      for (var i = 1; i < imgs.length; i++) {
-        var img_data = imgs[i];
-
-        img_data = img_data.split('shplid');
-
-        if (img_data.length > 1) {
-
-          img_data = img_data[1];
-
-          var id = '';
-          var t = 0;
-
-          while (t < img_data.length) {
-            if (img_data[t] == '\\' || img_data[t] == '{' || img_data[t] == ' ' || img_data[t] == '\r' || img_data[t] == '\n') {
-              break;
-            }
-
-            id += img_data[t];
-
-            t++;
-          }
-
-          var bliptab_split = img_data.split('bliptag');
-
-          if (bliptab_split && bliptab_split.length < 2) {
-
-            continue;
-          }
-
-          var image_type = null;
-
-          if (bliptab_split[0].indexOf('pngblip') != -1) {
-            image_type = 'image/png';
-          }
-          else if (bliptab_split[0].indexOf('jpegblip') != -1) {
-            image_type = 'image/jpeg';
-          }
-
-          if (!image_type) {
-
-            continue;
-          }
-
-          var bracket_split = bliptab_split[1].split('}');
-
-          if (bracket_split && bracket_split.length < 2) {
-
-            continue;
-          }
-
-          var space_split;
-
-          if (bracket_split.length > 2 && bracket_split[0].indexOf('blipuid') != -1) {
-            space_split = bracket_split[1].split(' ');
-          }
-          else {
-            space_split = bracket_split[0].split(' ');
-
-            if (space_split && space_split.length < 2) {
-
-              continue;
-            }
-
-            space_split.shift();
-          }
-
-          var image_hex = space_split.join('');
-
-          _rtf_map[letter + id] = {
-            image_hex: image_hex,
-            image_type: image_type
-          }
-        }
-      }
-    }
-
-    function _buildRtfMap (rtf) {
-      _rtf_map = {};
-
-      _getRtfData(rtf, 'i', '\\shppict');
-      _getRtfData(rtf, 's', '\\shp{');
-    }
-
     /*
      * Clean HTML Image.
      */
@@ -888,64 +838,115 @@
         return;
       }
 
+      // Get src.
+      var src = el.getAttribute('src');
+
+      if (!src || src.indexOf('file://') == -1) {
+
+        return;
+      }
+
       // vshapes_tag will identify the image in rtf.
-      var vshapes_tag;
-
-      // Image case.
-      if (el.tagName == 'IMG') {
-        // Get src.
-        var src = el.getAttribute('src');
-
-        if (!src || src.indexOf('file://') == -1) {
-          return;
-        }
-
-        else if (src.indexOf('file://') === 0) {
-          if (editor.helpers.isURL(el.getAttribute('alt'))) {
-            el.setAttribute('src', el.getAttribute('alt'))
-
-            return;
-          }
-        }
-
-        // vshapes_tag will identify the image in rtf.
-        vshapes_tag = _v_shapes_map[el.getAttribute('v:shapes')];
-
-        if (!vshapes_tag) {
-          vshapes_tag = el.getAttribute('v:shapes');
-        }
-      }
-      else {
-        vshapes_tag = el.parentNode.getAttribute('o:spid');
-      }
-
-      el.removeAttribute('height');
+      var vshapes_tag = el.getAttribute('v:shapes');
 
       if (!vshapes_tag) {
 
         return;
       }
 
-      _buildRtfMap(rtf);
+      // Get image id from comments nodes. vshapes_tag must be like 'Picture_x0020_1', 'Diagram_x0010_1' or 'Other_x0000_1'.
+      if (/^[a-zA-Z]+_/gi.test(vshapes_tag) && el.previousSibling) {
 
-      var img_data = _rtf_map[vshapes_tag.substring(7)];
+        // Get comment node.
+        var image_comment_node = el.previousSibling.previousSibling;
 
-      if (img_data) {
+        if (!image_comment_node) {
 
-        // Convert image hex to base64.
-        var image_base64 = _hexToBase64(img_data.image_hex);
-
-        // Build data uri.
-        var data_uri = 'data:' + img_data.image_type + ';base64,' + image_base64;
-
-        if (el.tagName === 'IMG') {
-          el.src = data_uri;
-          el.setAttribute('data-fr-image-pasted', true)
+          return;
         }
-        else {
-          $(el.parentNode).before('<img data-fr-image-pasted="true" src="' + data_uri + '" style="' + el.parentNode.getAttribute('style') + '">').remove();
+
+        // Search for tag.
+        var image_comment_node_split = image_comment_node.data.split('o:spid="');
+
+        if (image_comment_node_split.length != 2) {
+
+          return;
         }
+
+        image_comment_node_split = image_comment_node_split[1].split('"');
+
+        if (image_comment_node_split.length < 2) {
+
+          return;
+        }
+
+        vshapes_tag = image_comment_node_split[0];
       }
+
+      // Build image id.
+      var image_id = 'hplid' + vshapes_tag.substring(8);
+
+      // Search for image type and hex.
+      var image_id_split = rtf.split(image_id);
+
+      if (image_id_split && image_id_split.length != 2) {
+
+        return;
+      }
+
+      var bliptab_split = image_id_split[1].split('bliptag');
+
+      if (bliptab_split && bliptab_split.length < 2) {
+
+        return;
+      }
+
+      var image_type = null;
+
+      if (bliptab_split[0].indexOf('pngblip') != -1) {
+        image_type = 'image/png';
+      }
+      else if (bliptab_split[0].indexOf('jpegblip') != -1) {
+        image_type = 'image/jpeg';
+      }
+
+      if (!image_type) {
+
+        return;
+      }
+
+      var bracket_split = bliptab_split[1].split('}');
+
+      if (bracket_split && bracket_split.length < 2) {
+
+        return;
+      }
+
+      var space_split;
+
+      if (bracket_split.length > 2 && bracket_split[0].indexOf('blipuid') != -1) {
+        space_split = bracket_split[1].split(' ');
+      }
+      else {
+        space_split = bracket_split[0].split(' ');
+
+        if (space_split && space_split.length < 2) {
+
+          return;
+        }
+
+        space_split.shift();
+      }
+
+      var image_hex = space_split.join('');
+
+      // Convert image hex to base64.
+      var image_base64 = _hexToBase64(image_hex);
+
+      // Build data uri.
+      var data_uri = 'data:' + image_type + ';base64,' + image_base64;
+
+      el.setAttribute('src', data_uri);
     }
 
     /*
@@ -980,9 +981,9 @@
       }
 
       // Check single spaces.
-      // if (tag_name == 'O:P' && el.innerHTML == '&nbsp;') {
-      //   el.innerHTML = $.FE.INVISIBLE_SPACE;
-      // }
+      if (tag_name == 'O:P' && el.innerHTML == '&nbsp;') {
+        el.innerHTML = $.FE.INVISIBLE_SPACE;
+      }
 
       // Index used in for loops.
       var i = -1;
@@ -1039,8 +1040,6 @@
               }
             }
           }
-
-          el.removeAttribute('class');
         }
 
         // Add tag style from head.
@@ -1097,7 +1096,7 @@
       }
 
       // Clean empty links.
-      if (tag_name == 'A' &&  !el.attributes.getNamedItem('href') && !el.attributes.getNamedItem('name') && el.innerHTML) {
+      if (tag_name == 'A' &&  !el.attributes.getNamedItem('href') && el.innerHTML) {
         el.outerHTML = el.innerHTML;
       }
 
@@ -1178,42 +1177,13 @@
       return head_style_hash;
     }
 
-    var _v_shapes_map = {};
-
-    /**
-     * Create a map with the ID for images.
-     */
-    function _getVShapes (html) {
-      var splits = html.split('v:shape');
-
-      for (var i = 1; i < splits.length; i++) {
-        var split = splits[i];
-        var id = split.split(' id="')[1];
-
-        if (id && id.length > 1) {
-          id = id.split('"')[0];
-
-          var oid = split.split(' o:spid="')[1];
-
-          if (oid && oid.length > 1) {
-            oid = oid.split('"')[0];
-
-            _v_shapes_map[id] = oid;
-          }
-        }
-      }
-    }
-
     /*
      * Clean HTML that was pasted from Word.
      */
     function _wordClean (html, rtf) {
 
       // Remove junk from outside html.
-      html = html.replace(/[.\s\S\w\W<>]*(<html[^>]*>[.\s\S\w\W<>]*<\/html>)[.\s\S\w\W<>]*/i, '$1');
-
-      // Get the vshapes for images.
-      _getVShapes(html);
+      html = html.replace(/[.\s\S\w\W<>]*(<html[^>]*>[.\s\S\w\W<>]*<\/html>)[.\s\S\w\W<>]*/gi, '$1');
 
       // Convert string into document.
       var parser = new DOMParser();
@@ -1225,24 +1195,17 @@
       // Create style attrs hash.
       var head_style_hash = _parseHeadStyle(head);
 
-      // Remove text nodes that do not contain non-whitespace characters and has new lines in them.
+      // Remove text nodes that do not contain non-whitespace characters and has new lines it them.
       _traverse(body, function (node) {
-        if (node.nodeType == Node.TEXT_NODE && /\n|\u00a0|\r/.test(node.data)) {
 
-          if (!/\S| /.test(node.data)) {
+        if (node.nodeType == Node.TEXT_NODE && /\n/.test(node.data)) {
+
+          if (!/\S/.test(node.data)) {
+
             // Keep single &nbsp;
             if (node.data == $.FE.UNICODE_NBSP) {
-              node.data = '\u200b';
-
               return true;
             }
-
-            if (node.data.length == 1 && node.data.charCodeAt(0) == 10) {
-              node.data = ' ';
-
-              return true;
-            }
-
             _removeNode(node);
 
             return false;
@@ -1250,7 +1213,7 @@
 
           // Remove newlines.
           else {
-            node.data = node.data.replace(/\n|\r/gi, ' ');
+            node.data = node.data.replace(/\n/gi, ' ');
           }
         }
 
@@ -1261,21 +1224,12 @@
       _traverse(body, function (node) {
 
         // Element node.
-        if (node.nodeType == Node.ELEMENT_NODE && (node.tagName == 'V:IMAGEDATA' || node.tagName == 'IMG')) {
-          _cleanImage(node, rtf)
+        if (node.nodeType == Node.ELEMENT_NODE && node.tagName == 'IMG') {
+          _cleanImage(node, rtf);
         }
 
         return true;
       });
-
-      // Process lists.
-      var lists = body.querySelectorAll('ul > ul, ul > ol, ol > ul, ol > ol');
-
-      for (var i = lists.length - 1; i >= 0; i--) {
-        if (lists[i].previousElementSibling && lists[i].previousElementSibling.tagName === 'LI') {
-          lists[i].previousElementSibling.appendChild(lists[i]);
-        }
-      }
 
       // Clean the body.
       _traverse(body, function (node) {
@@ -1291,8 +1245,10 @@
 
         // Element node.
         else if (node.nodeType == Node.ELEMENT_NODE) {
+
           // List found.
           if (_isList(node)) {
+
             // Keep the parent node and previous sibling because the node could be deleted in the list building.
             var parent_node = node.parentNode;
             var previous_sibling = node.previousSibling;

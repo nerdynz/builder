@@ -9,7 +9,7 @@
   .box-sizing(border-box);
   .user-select(none);
   margin-top: 10px;
-  z-index: 2147483635;
+  z-index: 9995;
   text-align: left;
   border: @editor-border;
   border-top: @ui-border-top;
@@ -35,10 +35,6 @@
 
   &.fr-hidden {
     .opacity(0);
-  }
-
-  &.fr-empty {
-    display: none !important;
   }
 
   .fr-hs {
@@ -159,7 +155,6 @@
       font-size: 16px;
       outline: none;
       .transition(background @transition-timing);
-      .border-radius(@border-radius);
 
       + button {
         margin-left: 24px;

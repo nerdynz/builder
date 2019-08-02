@@ -1,5 +1,5 @@
 <template>
-  <main class="simple main-body u-fh">
+  <main class="simple main-body">
     <nuxt />
   </main>
 </template>
@@ -7,42 +7,7 @@
 <script>
 
 export default {
-  // COMPONENT
-  // ______________________________________
-  head () {
-    return {
-      title: 'Login - '
-    }
-  },
-  components: {
-  },
-  props: {},
-  computed: {},
-  methods: {},
-  watch: {},
-  data () {
-    return {
-    }
-  },
 
-  // LIFECYCLE METHODS
-  // ______________________________________
-  beforeCreate () {
-  },
-  created () {
-  },
-  beforeMount () {
-  },
-  mounted () {
-  },
-  beforeUpdate () {
-  },
-  updated () {
-  },
-  beforeDestroy () {
-  },
-  destroyed () {
-  }
 }
 </script>
 

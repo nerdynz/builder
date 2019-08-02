@@ -35,6 +35,10 @@
     .user-select(none);
   }
 
+  [contenteditable="false"] {
+    .user-select(none);
+  }
+
   [contenteditable="true"] {
     outline: 0px solid transparent;
   }
@@ -65,7 +69,7 @@
       fill: @floating-btn-text;
     }
 
-    i, svg {
+    i {
       font-size: @floating-btn-font-size;
       line-height: @floating-btn-size;
     }

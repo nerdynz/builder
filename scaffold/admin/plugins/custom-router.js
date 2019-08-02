@@ -1,4 +1,4 @@
-export default function ({app, store}, inject) {
+export default function ({ app, store }, inject) {
   logRoutes(app)
   // add this to a router, make it automatically set bread and current on change
   app.router.beforeEach((to, from, next) => {
@@ -24,9 +24,9 @@ export default function ({app, store}, inject) {
 }
 
 function logRoutes (app) {
-  var routeInfo = '=== APPLICATION ROUTES ===\n'
+  let routeInfo = '=== APPLICATION ROUTES ===\n'
   app.router.options.routes.forEach((route) => {
     routeInfo += `${route.name} => ${route.path}\n`
   })
-  console.log(routeInfo)
+  console.log(routeInfo) // eslint-disable-line
 }

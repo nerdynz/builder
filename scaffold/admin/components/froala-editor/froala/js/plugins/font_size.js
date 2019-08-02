@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -36,8 +36,7 @@
   $.extend($.FE.DEFAULTS, {
     fontSize: ['8', '9', '10', '11', '12', '14', '18', '24', '30', '36', '48', '60', '72', '96'],
     fontSizeSelection: false,
-    fontSizeDefaultSelection: '12',
-    fontSizeUnit: 'px'
+    fontSizeDefaultSelection: '12'
   });
 
   $.FE.PLUGINS.fontSize = function (editor) {
@@ -47,11 +46,6 @@
 
     function refreshOnShow($btn, $dropdown) {
       var val = $(editor.selection.element()).css('font-size');
-
-      if (editor.opts.fontSizeUnit === 'pt') {
-        val = Math.round(parseFloat(val, 10) * 72 / 96) + 'pt'
-      }
-
       $dropdown.find('.fr-command.fr-active').removeClass('fr-active').attr('aria-selected', false);
       $dropdown.find('.fr-command[data-param1="' + val + '"]').addClass('fr-active').attr('aria-selected', true);
 
@@ -69,11 +63,6 @@
     function refresh ($btn) {
       if (editor.opts.fontSizeSelection) {
         var val = editor.helpers.getPX($(editor.selection.element()).css('font-size'));
-
-        if (editor.opts.fontSizeUnit === 'pt') {
-          val = Math.round(parseFloat(val, 10) * 72 / 96) + 'pt'
-        }
-
         $btn.find('> span').text(val);
       }
     }
@@ -102,7 +91,7 @@
 
       for (var i = 0; i < options.length; i++) {
         var val = options[i];
-        c += '<li role="presentation"><a class="fr-command" tabIndex="-1" role="option" data-cmd="fontSize" data-param1="' + val + this.opts.fontSizeUnit + '" title="' + val + '">' + val + '</a></li>';
+        c += '<li role="presentation"><a class="fr-command" tabIndex="-1" role="option" data-cmd="fontSize" data-param1="' + val + 'px" title="' + val + '">' + val + '</a></li>';
       }
       c += '</ul>';
 

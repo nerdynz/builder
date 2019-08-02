@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -39,8 +39,7 @@
 
   // Extend defaults.
   $.extend($.FE.DEFAULTS, {
-    fileUpload: true,
-    fileUploadURL: null,
+    fileUploadURL: 'https://i.froala.com/upload',
     fileUploadParam: 'file',
     fileUploadParams: {},
     fileUploadToS3: false,
@@ -53,8 +52,6 @@
 
 
   $.FE.PLUGINS.file = function (editor) {
-    var DEFAULT_FILE_UPLOAD_URL = 'https://i.froala.com/upload';
-
     var BAD_LINK = 1;
     var MISSING_LINK = 2;
     var ERROR_DURING_UPLOAD = 3;
@@ -85,15 +82,9 @@
         editor.popups.refresh('file.insert');
         editor.popups.setContainer('file.insert', editor.$tb);
 
-        if ($btn.is(':visible')) {
-          var left = $btn.offset().left + $btn.outerWidth() / 2;
-          var top = $btn.offset().top + (editor.opts.toolbarBottom ? 10 : $btn.outerHeight() - 10);
-          editor.popups.show('file.insert', left, top, $btn.outerHeight());
-        }
-        else {
-          editor.position.forSelection($popup);
-          editor.popups.show('file.insert');
-        }
+        var left = $btn.offset().left + $btn.outerWidth() / 2;
+        var top = $btn.offset().top + (editor.opts.toolbarBottom ? 0 : $btn.outerHeight());
+        editor.popups.show('file.insert', left, top, $btn.outerHeight());
       }
     }
 
@@ -181,7 +172,7 @@
       }
 
       // Insert the link.
-      editor.html.insert('<a href="' + link + '" target="_blank" id="fr-inserted-file" class="fr-file">' + text + '</a>');
+      editor.html.insert('<a href="' + link + '" id="fr-inserted-file" class="fr-file">' + text + '</a>');
 
       // Get the file.
       var $file = editor.$el.find('#fr-inserted-file');
@@ -336,34 +327,6 @@
       hideProgressBar(true);
     }
 
-    function _browserUpload (file) {
-      var reader = new FileReader();
-
-      reader.addEventListener('load', function () {
-        var link = reader.result;
-
-        // Convert image to local blob.
-        var binary = atob(reader.result.split(',')[1]);
-        var array = [];
-
-        for (var i = 0; i < binary.length; i++) {
-          array.push(binary.charCodeAt(i));
-        }
-
-        // Get local image link.
-        link = window.URL.createObjectURL(new Blob([new Uint8Array(array)], {
-          type: file.type
-        }));
-
-        editor.file.insert(link, file.name, null);
-      }, false);
-
-      showProgressBar();
-
-      reader.readAsDataURL(file)
-    }
-
-
     function upload (files) {
 
       // Make sure we have what to upload.
@@ -377,13 +340,6 @@
 
 
         var file = files[0];
-
-        // Upload as blob for testing purposes.
-        if (editor.opts.fileUploadURL === null || editor.opts.fileUploadURL == DEFAULT_FILE_UPLOAD_URL) {
-          _browserUpload(file)
-
-          return false;
-        }
 
         // Check file max size.
         if (file.size > editor.opts.fileMaxSize) {
@@ -456,8 +412,7 @@
           xhr.onabort = _fileUploadAborted;
 
           showProgressBar();
-
-          // editor.edit.off();
+          editor.edit.off();
 
           var $popup = editor.popups.get('file.insert');
 
@@ -507,7 +462,7 @@
       }, true);
 
       if (editor.helpers.isIOS()) {
-        editor.events.$on($popup, 'touchstart', '.fr-file-upload-layer input[type="file"]', function () {
+        editor.events.$on($popup, 'touchend', '.fr-file-upload-layer input[type="file"]', function () {
           $(this).trigger('click');
         });
       }
@@ -515,11 +470,6 @@
       editor.events.$on($popup, 'change', '.fr-file-upload-layer input[type="file"]', function () {
         if (this.files) {
           var inst = $popup.data('instance') || editor;
-
-          inst.events.disableBlur();
-          $popup.find('input:focus').blur();
-          inst.events.enableBlur();
-
           inst.file.upload(this.files);
         }
 
@@ -543,19 +493,11 @@
 
       // Image buttons.
       var file_buttons = '';
-
-      if (!editor.opts.fileUpload) {
-        editor.opts.fileInsertButtons.splice(editor.opts.fileInsertButtons.indexOf('fileUpload'), 1);
-      }
-
       file_buttons = '<div class="fr-buttons">' + editor.button.buildList(editor.opts.fileInsertButtons) + '</div>';
 
       // File upload layer.
       var upload_layer = '';
-
-      if (editor.opts.fileUpload) {
-        upload_layer = '<div class="fr-file-upload-layer fr-layer fr-active" id="fr-file-upload-layer-' + editor.id + '"><strong>' + editor.language.translate('Drop file') + '</strong><br>(' + editor.language.translate('or click') + ')<div class="fr-form"><input type="file" name="' + editor.opts.fileUploadParam + '" accept="/*" tabIndex="-1" aria-labelledby="fr-file-upload-layer-' + editor.id + '" role="button"></div></div>'
-      }
+      upload_layer = '<div class="fr-file-upload-layer fr-layer fr-active" id="fr-file-upload-layer-' + editor.id + '"><strong>' + editor.language.translate('Drop file') + '</strong><br>(' + editor.language.translate('or click') + ')<div class="fr-form"><input type="file" name="' + editor.opts.fileUploadParam + '" accept="/*" tabIndex="-1" aria-labelledby="fr-file-upload-layer-' + editor.id + '" role="button"></div></div>'
 
 
       // Progress bar.
@@ -593,15 +535,7 @@
         if (file && typeof file.type != 'undefined') {
 
           // Dropped file is an file that we allow.
-          if (file.type.indexOf('image') < 0) {
-            if (!editor.opts.fileUpload) {
-              e.preventDefault();
-              e.stopPropagation();
-
-              return false;
-            }
-
-
+          if (file.type.indexOf('image') < 0 && (editor.opts.fileAllowedTypes.indexOf(file.type) >= 0 || editor.opts.fileAllowedTypes.indexOf('*') >= 0)) {
             editor.markers.remove();
             editor.markers.insertAtPoint(e.originalEvent);
             editor.$el.find('.fr-marker').replaceWith($.FE.MARKERS);
@@ -626,10 +560,6 @@
 
             return false;
           }
-        }
-        else if (file.type.indexOf('image') < 0) {
-          e.preventDefault();
-          e.stopPropagation();
         }
       }
     }
@@ -721,10 +651,7 @@
   }
 
   // Insert file button.
-  $.FE.DefineIcon('insertFile', {
-    NAME: 'file-o',
-    FA5NAME: 'file'
-  });
+  $.FE.DefineIcon('insertFile', { NAME: 'file-o' });
   $.FE.RegisterCommand('insertFile', {
     title: 'Upload File',
     undo: false,

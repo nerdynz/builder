@@ -6,7 +6,7 @@ export default class Menu {
     let currentRoute = to
     let bread = []
     if (currentRoute.path !== '/') {
-      bread.push(this.items['index'])
+      bread.push(this.items.index)
     }
     // untested for level 2....
     let goDeep = function (menu, parts, bread, level) {
@@ -16,7 +16,7 @@ export default class Menu {
         keyarr.push(parts[i])
       }
       let key = keyarr.join('-')
-      let menuItem = {title: 'not-in-menu', name: 'not-in-menu', path: '/not-in-menu'}
+      let menuItem = { title: 'not-in-menu', name: 'not-in-menu', path: '/not-in-menu' }
       if (menu[routeName]) {
         menuItem = menu[routeName]
       } else if (menu[key]) {
@@ -48,7 +48,7 @@ export default class Menu {
       store.commit('app/SET_BREADCRUMB', this.bread)
     }
   }
-  static install (Vue, {router, store}) {
+  static install (Vue, { router, store }) {
     let m = new Menu()
     m.items = menu() // load from static menu js
     addPaths(m.items, router, 0)

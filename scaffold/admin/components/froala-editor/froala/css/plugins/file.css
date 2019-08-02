@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 .clearfix::after {
@@ -20,7 +20,7 @@
   clip: rect(0, 0, 0, 0);
   border: 0;
 }
-.fr-popup .fr-file-upload-layer {
+.fr-file-upload-layer {
   border: dashed 2px #bdbdbd;
   padding: 25px 0;
   position: relative;
@@ -32,14 +32,14 @@
   box-sizing: border-box;
   text-align: center;
 }
-.fr-popup .fr-file-upload-layer:hover {
+.fr-file-upload-layer:hover {
   background: #ebebeb;
 }
-.fr-popup .fr-file-upload-layer.fr-drop {
+.fr-file-upload-layer.fr-drop {
   background: #ebebeb;
   border-color: #1e88e5;
 }
-.fr-popup .fr-file-upload-layer .fr-form {
+.fr-file-upload-layer .fr-form {
   -webkit-opacity: 0;
   -moz-opacity: 0;
   opacity: 0;
@@ -49,13 +49,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 2147483640;
+  z-index: 9999;
   overflow: hidden;
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
 }
-.fr-popup .fr-file-upload-layer .fr-form input {
+.fr-file-upload-layer .fr-form input {
   cursor: pointer;
   position: absolute;
   right: 0px;
@@ -66,20 +66,20 @@
   margin: 0px;
   font-size: 400px;
 }
-.fr-popup .fr-file-progress-bar-layer {
+.fr-file-progress-bar-layer {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
 }
-.fr-popup .fr-file-progress-bar-layer > h3 {
+.fr-file-progress-bar-layer > h3 {
   font-size: 16px;
   margin: 10px 0;
   font-weight: normal;
 }
-.fr-popup .fr-file-progress-bar-layer > div.fr-action-buttons {
+.fr-file-progress-bar-layer > div.fr-action-buttons {
   display: none;
 }
-.fr-popup .fr-file-progress-bar-layer > div.fr-loader {
+.fr-file-progress-bar-layer > div.fr-loader {
   background: #bcdbf7;
   height: 10px;
   width: 100%;
@@ -87,7 +87,7 @@
   overflow: hidden;
   position: relative;
 }
-.fr-popup .fr-file-progress-bar-layer > div.fr-loader span {
+.fr-file-progress-bar-layer > div.fr-loader span {
   display: block;
   height: 100%;
   width: 0%;
@@ -97,7 +97,7 @@
   -ms-transition: width 0.2s ease 0s;
   -o-transition: width 0.2s ease 0s;
 }
-.fr-popup .fr-file-progress-bar-layer > div.fr-loader.fr-indeterminate span {
+.fr-file-progress-bar-layer > div.fr-loader.fr-indeterminate span {
   width: 30% !important;
   position: absolute;
   top: 0;
@@ -106,10 +106,10 @@
   -o-animation: loading 2s linear infinite;
   animation: loading 2s linear infinite;
 }
-.fr-popup .fr-file-progress-bar-layer.fr-error > div.fr-loader {
+.fr-file-progress-bar-layer.fr-error > div.fr-loader {
   display: none;
 }
-.fr-popup .fr-file-progress-bar-layer.fr-error > div.fr-action-buttons {
+.fr-file-progress-bar-layer.fr-error > div.fr-action-buttons {
   display: block;
 }
 @keyframes loading {

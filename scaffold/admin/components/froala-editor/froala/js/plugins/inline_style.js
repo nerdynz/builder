@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -43,15 +43,7 @@
   $.FE.PLUGINS.inlineStyle = function (editor) {
     function apply (val) {
       if (editor.selection.text() !== '') {
-        var splits = val.split(';');
-
-        for (var i = 0; i < splits.length; i++) {
-          var new_split = splits[i].split(':');
-
-          if (splits[i].length && new_split.length == 2) {
-            editor.format.applyStyle(new_split[0].trim(), new_split[1].trim())
-          }
-        }
+        editor.html.insert($.FE.START_MARKER + '<span style="' + val + '">' + editor.selection.text() + '</span>' + $.FE.END_MARKER);
       }
       else {
         editor.html.insert('<span style="' + val + '">' + $.FE.INVISIBLE_SPACE + $.FE.MARKERS + '</span>');

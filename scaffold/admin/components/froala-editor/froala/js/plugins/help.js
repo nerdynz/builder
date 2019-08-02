@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -50,20 +50,20 @@
           { val: 'OSkeyV',  desc: 'Paste' },
           { val: 'OSkeyZ',  desc: 'Undo' },
           { val: 'OSkeyShift+Z',  desc: 'Redo' },
-          { val: 'OSkeyK',  desc: 'Insert Link' },
-          { val: 'OSkeyP',  desc: 'Insert Image' }
+          { val: 'OSkeyK',  desc: 'Insert link' },
+          { val: 'OSkeyP',  desc: 'Insert image' }
         ]
       },
       {
         title: 'Basic Formatting',
         commands: [
-          { val: 'OSkeyA',  desc: 'Select All' },
+          { val: 'OSkeyA',  desc: 'Select all' },
           { val: 'OSkeyB',  desc: 'Bold' },
           { val: 'OSkeyI',  desc: 'Italic' },
           { val: 'OSkeyU',  desc: 'Underline' },
           { val: 'OSkeyS',  desc: 'Strikethrough' },
-          { val: 'OSkey]',  desc: 'Increase Indent' },
-          { val: 'OSkey[',  desc: 'Decrease Indent' }
+          { val: 'OSkey]',  desc: 'Indent' },
+          { val: 'OSkey[',  desc: 'Outdent' }
         ]
       },
       {
@@ -121,15 +121,15 @@
       // Begin body.
       var body = '<div class="fr-help-modal">';
 
-      for (var i = 0; i < editor.opts.helpSets.length; i++) {
-        var set = editor.opts.helpSets[i];
+      for (var i = 0; i < $.FE.DEFAULTS.helpSets.length; i++) {
+        var set = $.FE.DEFAULTS.helpSets[i];
 
         // Set shortcuts table.
         // Begin Table.
         var group = '<table>';
 
         // Set title.
-        group += '<thead><tr><th>' + editor.language.translate(set.title) + '</th></tr></thead>';
+        group += '<thead><tr><th>' + set.title + '</th></tr></thead>';
         group += '<tbody>';
 
         // Build commands table.
@@ -137,7 +137,7 @@
           var command = set.commands[j];
           group += '<tr>';
 
-          group += '<td>' + editor.language.translate(command.desc) + '</td>';
+          group += '<td>' + command.desc + '</td>';
           group += '<td>' + command.val.replace('OSkey', editor.helpers.isMac() ? '&#8984;' : 'Ctrl+') + '</td>';
 
           group += '</tr>';
@@ -161,7 +161,7 @@
      */
     function show () {
       if (!$modal) {
-        var head = '<h4>' + editor.language.translate('Shortcuts') + '</h4>';
+        var head = '<h4>Shortcuts</h4>';
         var body = _buildBody();
 
         var modalHash = editor.modals.create(modal_id, head, body);

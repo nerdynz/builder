@@ -1,6 +1,6 @@
 @import "~public/scss/_variables";
 @import "~assets/overrides.scss";
-@import "~animate-sass/animate";
+@import "~public/scss/animate/animate";
 
 .label {
   font-weight: $weight-semibold;
@@ -13,9 +13,6 @@
   .slim-label {
     font-size: $size-small;
   }
-}
-html, body, .main-body, #app, .app-inner {
-  height: 100%;
 }
 
 .main-body {
@@ -340,6 +337,6 @@ a.is-link {
   position: relative;
 
   .loading-overlay {
-    position: absolute;
+    position: absolute !important;
   }
 }

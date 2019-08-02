@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -31,11 +31,12 @@
     }
 }(function ($) {
 
+  
 
   $.extend($.FE.POPUP_TEMPLATES, {
     'table.insert': '[_BUTTONS_][_ROWS_COLUMNS_]',
     'table.edit': '[_BUTTONS_]',
-    'table.colors': '[_BUTTONS_][_COLORS_][_CUSTOM_COLOR_]'
+    'table.colors': '[_BUTTONS_][_COLORS_]'
   })
 
   // Extend defaults.
@@ -44,7 +45,6 @@
     tableEditButtons: ['tableHeader', 'tableRemove', '|', 'tableRows', 'tableColumns', 'tableStyle', '-', 'tableCells', 'tableCellBackground', 'tableCellVerticalAlign', 'tableCellHorizontalAlign', 'tableCellStyle'],
     tableInsertButtons: ['tableBack', '|'],
     tableResizer: true,
-    tableDefaultWidth: '100%',
     tableResizerOffset: 5,
     tableResizingLimit: 30,
     tableColorsButtons: ['tableBack', '|'],
@@ -105,6 +105,7 @@
      * Show the table edit popup.
      */
     function _showEditPopup () {
+
       // Set popup position.
       var map = _tableMap();
 
@@ -113,37 +114,33 @@
 
         if (!$popup) $popup = _initEditPopup();
 
-        if ($popup) {
-          editor.popups.setContainer('table.edit', editor.$sc);
-          var offset = _selectionOffset(map);
-          var left = (offset.left + offset.right) / 2;
-          var top = offset.bottom;
+        editor.popups.setContainer('table.edit', editor.$sc);
+        var offset = _selectionOffset(map);
+        var left = (offset.left + offset.right) / 2;
+        var top = offset.bottom;
 
-          editor.popups.show('table.edit', left, top, offset.bottom - offset.top);
+        editor.popups.show('table.edit', left, top, offset.bottom - offset.top);
 
-          // Disable toolbar buttons only if there are more than one cells selected.
-          if (editor.edit.isDisabled()) {
+        // Disable toolbar buttons only if there are more than one cells selected.
+        if (editor.edit.isDisabled()) {
 
-            // Disable toolbar.
-            if (selectedCells().length > 1) {
-              editor.toolbar.disable();
-            }
+          // Disable toolbar.
+          editor.toolbar.disable();
 
-            // Allow text selection.
-            editor.$el.removeClass('fr-no-selection');
-            editor.edit.on();
+          // Allow text selection.
+          editor.$el.removeClass('fr-no-selection');
+          editor.edit.on();
 
-            editor.button.bulkRefresh();
+          editor.button.bulkRefresh();
 
-            // https://github.com/froala/wysiwyg-editor/issues/1851.
-            // https://github.com/froala-labs/froala-editor-js-2/issues/314.
-            // https://github.com/froala/wysiwyg-editor/issues/1656.
-            // https://github.com/froala-labs/froala-editor-js-2/issues/294.
+          // https://github.com/froala/wysiwyg-editor/issues/1851.
+          // https://github.com/froala-labs/froala-editor-js-2/issues/314.
+          // https://github.com/froala/wysiwyg-editor/issues/1656.
+          // https://github.com/froala-labs/froala-editor-js-2/issues/294.
 
-            // Place selection in last selected table cell.
-            editor.selection.setAtEnd(editor.$el.find('.fr-selected-cell:last').get(0));
-            editor.selection.restore();
-          }
+          // Place selection in last selected table cell.
+          editor.selection.setAtEnd(editor.$el.find('.fr-selected-cell:last').get(0));
+          editor.selection.restore();
         }
       }
     }
@@ -390,23 +387,21 @@
 
       if (editor.opts.tableEditButtons.length > 0) {
         table_buttons = '<div class="fr-buttons">' + editor.button.buildList(editor.opts.tableEditButtons) + '</div>';
-
-        var template = {
-          buttons: table_buttons
-        };
-
-        var $popup = editor.popups.create('table.edit', template);
-
-        editor.events.$on(editor.$wp, 'scroll.table-edit', function () {
-          if (editor.popups.isVisible('table.edit')) {
-            _showEditPopup();
-          }
-        });
-
-        return $popup;
       }
 
-      return false;
+      var template = {
+        buttons: table_buttons
+      };
+
+      var $popup = editor.popups.create('table.edit', template);
+
+      editor.events.$on(editor.$wp, 'scroll.table-edit', function () {
+        if (editor.popups.isVisible('table.edit')) {
+          _showEditPopup();
+        }
+      });
+
+      return $popup;
     }
 
     /*
@@ -421,17 +416,9 @@
         table_buttons = '<div class="fr-buttons fr-table-colors-buttons">' + editor.button.buildList(editor.opts.tableColorsButtons) + '</div>';
       }
 
-      // Custom HEX.
-      var custom_color = '';
-
-      if (editor.opts.colorsHEXInput) {
-        custom_color = '<div class="fr-table-colors-hex-layer fr-active fr-layer" id="fr-table-colors-hex-layer-' + editor.id + '"><div class="fr-input-line"><input maxlength="7" id="fr-table-colors-hex-layer-text-' + editor.id + '" type="text" placeholder="' + editor.language.translate('HEX Color') + '" tabIndex="1" aria-required="true"></div><div class="fr-action-buttons"><button type="button" class="fr-command fr-submit" data-cmd="tableCellBackgroundCustomColor" tabIndex="2" role="button">' + editor.language.translate('OK') + '</button></div></div>';
-      }
-
       var template = {
         buttons: table_buttons,
-        colors: _colorsHTML(),
-        custom_color: custom_color
+        colors: _colorsHTML()
       };
 
       var $popup = editor.popups.create('table.colors', template);
@@ -466,25 +453,13 @@
         }
 
         else {
-          colors_html += '<span class="fr-command" data-cmd="tableCellBackgroundColor" tabIndex="-1" role="button" data-param1="REMOVE" title="' + editor.language.translate('Clear Formatting') + '">' + editor.icon.create('tableColorRemove') + '<span class="fr-sr-only">' + editor.language.translate('Clear Formatting') + '</span></span>';
+          colors_html += '<span class="fr-command" data-cmd="tableCellBackgroundColor" tabIndex="-1" role="button" data-param1="REMOVE" title="' + editor.language.translate('Clear Formatting') + '"><i class="fa fa-eraser"></i><span class="fr-sr-only">' + editor.language.translate('Clear Formatting') + '</span></span>';
         }
       }
 
       colors_html += '</div>';
 
       return colors_html;
-    }
-
-    /*
-     * Set custom color
-     */
-    function customColor () {
-      var $popup = editor.popups.get('table.colors');
-      var $input = $popup.find('.fr-table-colors-hex-layer input');
-
-      if ($input.length) {
-        setBackground($input.val())
-      }
     }
 
     /*
@@ -580,15 +555,12 @@
     function _refreshColor () {
       var $popup = editor.popups.get('table.colors');
       var $cell = editor.$el.find('.fr-selected-cell:first');
-      var color = editor.helpers.RGBToHex($cell.css('background-color'));
-      var $input = $popup.find('.fr-table-colors-hex-layer input');
 
       // Remove current color selection.
       $popup.find('.fr-selected-color').removeClass('fr-selected-color fr-active-item');
 
       // Find the selected color.
-      $popup.find('span[data-param1="' + color + '"]').addClass('fr-selected-color fr-active-item');
-      $input.val(color).trigger('change');
+      $popup.find('span[data-param1="' + editor.helpers.RGBToHex($cell.css('background-color')) + '"]').addClass('fr-selected-color fr-active-item');
     }
 
     /*
@@ -597,7 +569,7 @@
     function insert (rows, cols) {
 
       // Create table HTML.
-      var table = '<table ' + (!editor.opts.tableDefaultWidth ? '' : 'style="width: ' + editor.opts.tableDefaultWidth + ';" ') + 'class="fr-inserted-table"><tbody>';
+      var table = '<table style="width: 100%;"><tbody>';
       var cell_width = 100 / cols;
       var i;
       var j;
@@ -606,7 +578,7 @@
         table += '<tr>';
 
         for (j = 0; j < cols; j++) {
-          table += '<td' + (!editor.opts.tableDefaultWidth ? '' : ' style="width: ' + cell_width.toFixed(4) + '%;"') + '>';
+          table += '<td style="width: ' + cell_width.toFixed(4) + '%;">';
 
           if (i === 0 && j === 0)table += $.FE.MARKERS;
           table += '<br></td>';
@@ -619,10 +591,6 @@
 
       // Update cursor position.
       editor.selection.restore()
-
-      var $table = editor.$el.find('.fr-inserted-table');
-      $table.removeClass('fr-inserted-table');
-      editor.events.trigger('table.inserted', [$table.get(0)]);
     }
 
     /*
@@ -738,76 +706,62 @@
           return;
         }
 
+        var i;
+        var ref_row;
+
+        // Create a table map.
+        var map = _tableMap();
+
+        // Get selected cells from the table.
+        var selection = _currentSelection(map);
+
+        // Reference row.
+        if (position == 'above') {
+          ref_row = selection.min_i;
+        }
         else {
-          var i;
-          var ref_row;
-          var $ref_row;
+          ref_row = selection.max_i;
+        }
 
-          // Create a table map.
-          var map = _tableMap();
+        // Create row HTML.
+        var tr = '<tr>';
 
-          // Get selected cells from the table.
-          var selection = _currentSelection(map);
+        // Add cells.
+        for (i = 0; i < map[ref_row].length; i++) {
 
-          // Reference row.
-          if (position == 'above') {
-            ref_row = selection.min_i;
+          // If cell has rowspan we should increase it.
+          if ((position == 'below' && ref_row < map.length - 1 && map[ref_row][i] == map[ref_row + 1][i]) ||
+              (position == 'above' && ref_row > 0 && map[ref_row][i] == map[ref_row - 1][i])) {
+
+            // Don't increase twice for colspan.
+            if (i === 0 || (i > 0 && map[ref_row][i] != map[ref_row][i - 1])) {
+              var $cell = $(map[ref_row][i]);
+              $cell.attr('rowspan', parseInt($cell.attr('rowspan'), 10) + 1);
+            }
+
           }
           else {
-            ref_row = selection.max_i;
+            tr += '<td><br></td>';
           }
+        }
 
-          // Create row HTML.
-          var tr = '<tr>';
+        // Close row tag.
+        tr += '</tr>';
 
-          // Add cells.
-          for (i = 0; i < map[ref_row].length; i++) {
+        var $ref_row = $($table.find('tr').not($table.find('table tr')).get(ref_row));
 
-            // If cell has rowspan we should increase it.
-            if ((position == 'below' && ref_row < map.length - 1 && map[ref_row][i] == map[ref_row + 1][i]) ||
-                (position == 'above' && ref_row > 0 && map[ref_row][i] == map[ref_row - 1][i])) {
+        // Insert new row.
+        if (position == 'below') {
 
-              // Don't increase twice for colspan.
-              if (i === 0 || (i > 0 && map[ref_row][i] != map[ref_row][i - 1])) {
-                var $cell = $(map[ref_row][i]);
-                $cell.attr('rowspan', parseInt($cell.attr('rowspan'), 10) + 1);
-              }
+          // Table edit popup should not change position.
+          $ref_row.after(tr);
+        }
+        else if (position == 'above') {
+          $ref_row.before(tr);
 
-            }
-            else {
-              tr += '<td><br></td>';
-            }
-          }
-
-          // Close row tag.
-          tr += '</tr>';
-
-          // Current selection is in header. Should insert in table body
-          if (editor.$el.find('th.fr-selected-cell').length > 0 && position == 'below') {
-            $ref_row = $($table.find('tbody').not($table.find('table tbody')));
-          }
-
-          // Selection is in body
-          else {
-            $ref_row = $($table.find('tr').not($table.find('table tr')).get(ref_row));
-          }
-
-          // Insert new row.
-          if (position == 'below') {
-            if ($ref_row.prop('tagName') == 'TBODY') {
-              $ref_row.prepend(tr);
-            }
-            else {
-              $ref_row.after(tr);
-            }
-          }
-          else if (position == 'above') {
-            $ref_row.before(tr);
-
-            // Reposition table edit popup.
-            if (editor.popups.isVisible('table.edit')) {
-              _showEditPopup();
-            }
+          // Reposition table edit popup.
+          if (editor.popups.isVisible('table.edit')) {
+            _showEditPopup();
           }
         }
       }
@@ -1113,27 +1067,22 @@
         // If all the rows are selected then delete the entire table.
         if (selection.min_j === 0 && selection.max_j == map[0].length - 1) {
           remove();
+
         }
         else {
-          // Old width of all the columns that remain afte the delete.
-          var old_width = 0;
+
+          // Old and new column widths.
+          var old_width = 100 / map[0].length;
+          var new_width = 100 / (map[0].length - selection.max_j + selection.min_j - 1);
 
           // Go through all cells and get their initial (old) widths.
-          for (i = 0; i < map.length; i++) {
-            for (j = 0; j < map[0].length; j++) {
-              $cell = $(map[i][j]);
+          $table.find('th, td').each (function () {
+            $cell = $(this);
 
-              if (!$cell.hasClass('fr-selected-cell')) {
-                $cell.data('old-width', $cell.outerWidth() / $table.outerWidth() * 100);
-
-                if (j < selection.min_j || j > selection.max_j) {
-                  old_width += $cell.outerWidth() / $table.outerWidth() * 100;
-                }
-              }
+            if (!$cell.hasClass('fr-selected-cell')) {
+              $cell.data('old-width', $cell.outerWidth() / $table.outerWidth() * 100);
             }
-          }
-
-          old_width /= map.length;
+          });
 
           // We should delete selected columns.
           for (j = selection.max_j; j >= selection.min_j; j--) {
@@ -1158,7 +1107,7 @@
                   }
 
                   // Update cell width.
-                  $cell.css('width', (($cell.data('old-width') - _columnWidth(j, map)) * 100 / old_width).toFixed(4) + '%');
+                  $cell.css('width', (($cell.data('old-width') - _columnWidth(j, map)) * new_width / old_width).toFixed(4) + '%');
                   $cell.removeData('old-width');
 
                 // If there is no colspan delete the cell.
@@ -1188,10 +1137,12 @@
 
           // Update cursor position
           if (selection.min_j > 0) {
+
             // Place cursor in the column before selection.
             editor.selection.setAtEnd(map[selection.min_i][selection.min_j - 1]);
           }
           else {
+
             // Place cursor in the column after selection.
             editor.selection.setAtEnd(map[selection.min_i][0]);
           }
@@ -1206,8 +1157,8 @@
 
             // Update width and remove data.
             if ($cell.data('old-width')) {
-              $cell.css('width', ($cell.data('old-width') * 100 / old_width).toFixed(4) + '%');
-              $cell.removeData('old-width');
+              $cell.css('width', ($cell.data('old-width') * new_width / old_width).toFixed(4) + '%');
+              $cell.removeData('old-width')
             }
           });
         }
@@ -1231,66 +1182,63 @@
       // A column might have been deleted.
       max_j = Math.min(max_j, map[0].length - 1);
 
-      // If max_j and min_j are the same, then only one column is selected and colspan is preserved.
-      if (max_j > min_j) {
-        // Find out how much we should decrease colspan.
-        // Parsing only the first row is enough.
-        for (j = min_j; j <= max_j; j++) {
+      // Find out how much we should decrease colspan.
+      // Parsing only the first row is enough.
+      for (j = min_j; j <= max_j; j++) {
 
-          // This cell has colspan and has already been checked.
-          if (j > min_j && map[0][j] == map[0][j - 1]) {
-            continue;
-          }
+        // This cell has colspan and has already been checked.
+        if (j > min_j && map[0][j] == map[0][j - 1]) {
+          continue;
+        }
 
-          // Current cell colspan
-          first_span = Math.min(parseInt(map[0][j].getAttribute('colspan'), 10) || 1, max_j - min_j + 1);
+        // Current cell colspan
+        first_span = parseInt(map[0][j].getAttribute('colspan'), 10) || 1;
 
-          // Cell has colspan between min_j and max_j.
-          /* j + 1 will never exceed the number of columns in a table.
-           * A colspan is detected before the last column and all next cells on that row are skipped.
-           */
-          if (first_span > 1 && map[0][j] == map[0][j + 1]) {
+        // Cell has colspan between min_j and max_j.
+        /* j + 1 will never exceed the number of columns in a table.
+         * A colspan is detected before the last column and all next cells on that row are skipped.
+         */
+        if (first_span > 1 && map[0][j] == map[0][j + 1]) {
 
-            // The value we should decrease colspan with.
-            decrease = first_span - 1;
+          // The value we should decrease rowspan with.
+          decrease = first_span - 1;
 
-            // Check all columns on the current row.
-            // We found a colspan on the first row (i = 0), continue with second row (i = 1).
-            for (i = 1; i < map.length; i++) {
+          // Check all columns on the current row.
+          // We found a colspan on the first row (i = 0), continue with second row (i = 1).
+          for (i = 1; i < map.length; i++) {
 
-              // This cell has rowspan and has already been checked.
-              if (map[i][j] == map[i - 1][j]) {
-                continue;
+            // This cell has rowspan and has already been checked.
+            if (map[i][j] == map[i - 1][j]) {
+              continue;
+            }
+
+            // Look for a colspan on the same columns.
+            for (k = j; k < j + first_span; k++) {
+              span = parseInt(map[i][k].getAttribute('colspan'), 10) || 1;
+
+              // There are other cells with colspan on this column.
+              /* k + 1 will never exceed the number of columns in a table.
+               * A colspan is detected before the last column and all next cells on that row are skipped.
+               */
+              if (span > 1 && map[i][k] == map[i][k + 1]) {
+                decrease = Math.min(decrease, span - 1);
+
+                // Skip colspan.
+                k += decrease;
               }
+              else {
+                decrease = Math.max (0, decrease - 1);
 
-              // Look for a colspan on the same columns.
-              for (k = j; k < j + first_span; k++) {
-                span = parseInt(map[i][k].getAttribute('colspan'), 10) || 1;
-
-                // There are other cells with colspan on this column.
-                /* k + 1 will never exceed the number of columns in a table.
-                 * A colspan is detected before the last column and all next cells on that row are skipped.
-                 */
-                if (span > 1 && map[i][k] == map[i][k + 1]) {
-                  decrease = Math.min(decrease, span - 1);
-
-                  // Skip colspan.
-                  k += decrease;
-                }
-                else {
-                  decrease = Math.max (0, decrease - 1);
-
-                  // Stop if decrease reaches 0.
-                  if (!decrease) {
-                    break;
-                  }
+                // Stop if decrease reaches 0.
+                if (!decrease) {
+                  break;
                 }
               }
+            }
 
-              // Stop looking on the next columns if decrease reaches 0.
-              if (!decrease) {
-                break;
-              }
+            // Stop looking on the next columns if decrease reaches 0.
+            if (!decrease) {
+              break;
             }
           }
         }
@@ -1319,66 +1267,63 @@
       // A row might have been deleted.
       max_i = Math.min(max_i, map.length - 1);
 
-      // If max_i and min_i are the same, then only one row is selected and rowspan is preserved.
-      if (max_i > min_i) {
-        // Find out how much we should decrease rowspan.
-        // Parsing only the first column is enough.
-        for (i = min_i; i <= max_i; i++) {
+      // Find out how much we should decrease rowspan.
+      // Parsing only the first column is enough.
+      for (i = min_i; i <= max_i; i++) {
 
-          // This cell has rowspan and has already been checked.
-          if (i > min_i && map[i][0] == map[i - 1][0]) {
-            continue;
-          }
+        // This cell has rowspan and has already been checked.
+        if (i > min_i && map[i][0] == map[i - 1][0]) {
+          continue;
+        }
 
-          // Current cell rowspan
-          first_span = Math.min(parseInt(map[i][0].getAttribute('rowspan'), 10) || 1, max_i - min_i + 1);
+        // Current cell rowspan
+        first_span = parseInt(map[i][0].getAttribute('rowspan'), 10) || 1;
 
-          // Cell has rowspan between min_i and max_i.
-          /* i + 1 will never exceed the number of rows in a table.
-           * A rowspan is detected before the last row and all next cells on that column are skipped.
-           */
-          if (first_span > 1 && map[i][0] == map[i + 1][0]) {
+        // Cell has rowspan between min_i and max_i.
+        /* i + 1 will never exceed the number of rows in a table.
+         * A rowspan is detected before the last row and all next cells on that column are skipped.
+         */
+        if (first_span > 1 && map[i][0] == map[i + 1][0]) {
 
-            // The value we should decrease rowspan with.
-            decrease = first_span - 1;
+          // The value we should decrease rowspan with.
+          decrease = first_span - 1;
 
-            // Check all columns on the current row.
-            // We found a rowspan on the first column (j = 0), continue with second column (j = 1).
-            for (j = 1; j < map[0].length; j++) {
+          // Check all columns on the current row.
+          // We found a rowspan on the first column (j = 0), continue with second column (j = 1).
+          for (j = 1; j < map[0].length; j++) {
 
-              // This cell has colspan and has already been checked.
-              if (map[i][j] == map[i][j - 1]) {
-                continue;
+            // This cell has colspan and has already been checked.
+            if (map[i][j] == map[i][j - 1]) {
+              continue;
+            }
+
+            // Look for a rowspan on the same rows.
+            for (k = i; k < i + first_span; k++) {
+              span = parseInt(map[k][j].getAttribute('rowspan'), 10) || 1;
+
+              // There are other cells with rowspan on this row.
+              /* k + 1 will never exceed the number of rows in a table.
+               * A rowspan is detected before the last row and all next cells on that column are skipped.
+               */
+              if (span > 1 && map[k][j] == map[k + 1][j]) {
+                decrease = Math.min(decrease, span - 1);
+
+                // Skip rowspan.
+                k += decrease;
               }
+              else {
+                decrease = Math.max (0, decrease - 1);
 
-              // Look for a rowspan on the same rows.
-              for (k = i; k < i + first_span; k++) {
-                span = parseInt(map[k][j].getAttribute('rowspan'), 10) || 1;
-
-                // There are other cells with rowspan on this row.
-                /* k + 1 will never exceed the number of rows in a table.
-                 * A rowspan is detected before the last row and all next cells on that column are skipped.
-                 */
-                if (span > 1 && map[k][j] == map[k + 1][j]) {
-                  decrease = Math.min(decrease, span - 1);
-
-                  // Skip rowspan.
-                  k += decrease;
-                }
-                else {
-                  decrease = Math.max (0, decrease - 1);
-
-                  // Stop if decrease reaches 0.
-                  if (!decrease) {
-                    break;
-                  }
+                // Stop if decrease reaches 0.
+                if (!decrease) {
+                  break;
                 }
               }
+            }
 
-              // Stop looking on the next columns if decrease reaches 0.
-              if (!decrease) {
-                break;
-              }
+            // Stop looking on the next columns if decrease reaches 0.
+            if (!decrease) {
+              break;
             }
           }
         }
@@ -1459,8 +1404,7 @@
           width += $(first_row_cells[i]).outerWidth();
         }
 
-        // Width might exceed 100% due to cell borders.
-        $first_cell.css('width', Math.min(100, (width / $current_table.outerWidth() * 100)).toFixed(4) + '%');
+        $first_cell.css('width', (width / $current_table.outerWidth() * 100).toFixed(4) + '%');
 
         // Set the colspan for the merged cells.
         if (selection.min_j < selection.max_j) {
@@ -1688,19 +1632,16 @@
      * Set background color to selected cells.
      */
     function setBackground (color) {
-      var $selected_cells = editor.$el.find('.fr-selected-cell');
 
       // Set background  color.
       if (color != 'REMOVE') {
-        $selected_cells.css('background-color', editor.helpers.HEXtoRGB(color));
+        editor.$el.find('.fr-selected-cell').css('background-color', editor.helpers.HEXtoRGB(color));
       }
 
       // Remove background color.
       else {
-        $selected_cells.css('background-color', '');
+        editor.$el.find('.fr-selected-cell').css('background-color', '');
       }
-
-      _showEditPopup();
     }
 
     /*
@@ -1751,7 +1692,7 @@
       }
 
       if ($table) {
-        $table.find('tr:visible').not($table.find('table tr')).each (function (row, tr) {
+        $table.find('tr').not($table.find('table tr')).each (function (row, tr) {
           var $tr = $(tr);
 
           var c_index = 0;
@@ -1776,9 +1717,9 @@
             c_index += cspan;
           })
         });
-      }
 
-      return map;
+        return map;
+      }
     }
 
     /*
@@ -1879,16 +1820,18 @@
      * Clear selection to prevent Firefox cell selection.
      */
     function _clearSelection () {
-      editor.events.disableBlur();
-      editor.selection.clear();
 
-      // Prevent text selection while selecting multiple cells.
-      // Happens in Chrome.
-      editor.$el.addClass('fr-no-selection');
+      // Timeout is needed when selecting cells using shift.
+      setTimeout(function () {
+        editor.selection.clear();
 
-      // Cursor will not appear if we don't make blur.
-      editor.$el.blur();
-      editor.events.enableBlur();
+        // Prevent text selection while selecting multiple cells.
+        // Happens in Chrome.
+        editor.$el.addClass('fr-no-selection');
+
+        // Cursor will not appear if we don't make blur.
+        editor.$el.blur();
+      }, 0);
     }
 
     /*
@@ -2042,7 +1985,7 @@
      * firstCell is either the top left corner or the fr-cell-fixed corner of the selection.
      * lastCell is either the bottom right corner ot the fr-cell-handler of the selection.
      */
-    function selectCells (firstCell, lastCell) {
+    function _selectCells (firstCell, lastCell) {
 
       // If the first and last cells are the same then just select it.
       if ($(firstCell).is(lastCell)) {
@@ -2050,11 +1993,15 @@
         // Remove previous selection.
         _removeSelection();
 
+        // Enable editor toolbar.
+        editor.edit.on();
+
         $(firstCell).addClass('fr-selected-cell');
-      }
 
       // Select multiple cells.
+      }
       else {
+
         // Prevent Firefox cell selection.
         _clearSelection();
 
@@ -2133,8 +2080,6 @@
     function _mouseDown (e) {
       var cell = _getCellUnder(e);
 
-      if ($(cell).parents('[contenteditable]:not(.fr-element):not(.fr-img-caption):not(body):first').attr('contenteditable') == 'false') return true;
-
       // Stop table editing if user clicks outside the table.
       if (selectedCells().length > 0 && !cell) {
         _stopEdit();
@@ -2172,7 +2117,7 @@
               if ($(editor.$el.find(tag_name + '.fr-selected-cell').closest('table')).is($(cell).closest('table'))) {
 
                 // Select cells between.
-                selectCells(mouseDownCell, cell);
+                _selectCells(mouseDownCell, cell);
 
               // Do nothing if cells are not in the same table.
               }
@@ -2197,9 +2142,7 @@
               mouseDownCell = cell;
 
               // Select cell.
-              if (editor.opts.tableEditButtons.length > 0) {
-                selectCells(mouseDownCell, mouseDownCell);
-              }
+              _selectCells(mouseDownCell, mouseDownCell);
             }
           }
         }
@@ -2215,6 +2158,7 @@
      * Notify that mouse is no longer pressed.
      */
     function _mouseUp (e) {
+
       // User clicked somewhere else in the editor (except the toolbar).
       // We need this because mouse down is not triggered outside the editor.
       if (!mouseDownCellFlag && !editor.$tb.is(e.target) && !editor.$tb.is($(e.target).closest(editor.$tb.get(0)))) {
@@ -2268,7 +2212,7 @@
           editor.edit.on();
 
           // Set release Y coordinate.
-          var left = parseFloat($resizer.css('left')) + editor.opts.tableResizerOffset + editor.$wp.offset().left;
+          var left = parseFloat($resizer.css('left')) + editor.opts.tableResizerOffset;
 
           if (editor.opts.iframe) {
             left -= editor.$iframe.offset().left;
@@ -2292,7 +2236,7 @@
      * User drags mouse over multiple cells to select them.
      */
     function _mouseEnter (e) {
-      if (mouseDownCellFlag === true && editor.opts.tableEditButtons.length > 0) {
+      if (mouseDownCellFlag === true) {
         var $cell = $(e.currentTarget);
 
         // Cells should be in the same table.
@@ -2302,7 +2246,7 @@
           if (e.currentTarget.tagName == 'TD' && editor.$el.find('th.fr-selected-cell').length === 0) {
 
             // Select cells between.
-            selectCells(mouseDownCell, e.currentTarget);
+            _selectCells(mouseDownCell, e.currentTarget);
 
             return;
           }
@@ -2310,7 +2254,7 @@
           else if (e.currentTarget.tagName == 'TH' && editor.$el.find('td.fr-selected-cell').length === 0) {
 
             // Select cells between.
-            selectCells(mouseDownCell, e.currentTarget);
+            _selectCells(mouseDownCell, e.currentTarget);
 
             return;
           }
@@ -2770,12 +2714,12 @@
           $resizer.data('instance', editor);
           editor.$wp.append($resizer);
 
-          var left = resizer_left - editor.win.pageXOffset - editor.opts.tableResizerOffset - editor.$wp.offset().left;
-          var top = resizer_top - editor.$wp.offset().top + editor.$wp.scrollTop();
+          var left = resizer_left - editor.win.pageXOffset - editor.opts.tableResizerOffset;
+          var top = resizer_top - editor.win.pageYOffset;
 
           if (editor.opts.iframe) {
-            left += editor.$iframe.offset().left;
-            top += editor.$iframe.offset().top;
+            left += editor.$iframe.offset().left - editor.helpers.scrollLeft();
+            top += editor.$iframe.offset().top - editor.helpers.scrollTop();
 
             max_left += editor.$iframe.offset().left;
             max_right += editor.$iframe.offset().left;
@@ -2845,8 +2789,8 @@
         // Insert before this td.
         if ($td.offset().left <= mouseX && mouseX < $td.offset().left + $td.outerWidth() / 2) {
           btn_width = parseInt($insert_helper.find('a').css('width'), 10);
-          $insert_helper.css('top', top + $td.offset().top - editor.$box.offset().top - editor.win.pageYOffset - btn_width - 5);
-          $insert_helper.css('left', left + $td.offset().left - editor.$box.offset().left - editor.win.pageXOffset - btn_width / 2);
+          $insert_helper.css('top', top + $td.offset().top - editor.win.pageYOffset - btn_width - 5);
+          $insert_helper.css('left', left + $td.offset().left - editor.win.pageXOffset - btn_width / 2);
           $insert_helper.data('selected-cell', $td);
           $insert_helper.data('position', 'before');
           $insert_helper.addClass('fr-visible');
@@ -2858,8 +2802,8 @@
         else if ($td.offset().left + $td.outerWidth() / 2 <= mouseX && mouseX < $td.offset().left + $td.outerWidth()) {
           btn_width = parseInt($insert_helper.find('a').css('width'), 10);
 
-          $insert_helper.css('top', top + $td.offset().top - editor.$box.offset().top - editor.win.pageYOffset - btn_width - 5);
-          $insert_helper.css('left', left + $td.offset().left - editor.$box.offset().left + $td.outerWidth() - editor.win.pageXOffset - btn_width / 2);
+          $insert_helper.css('top', top + $td.offset().top - editor.win.pageYOffset - btn_width - 5);
+          $insert_helper.css('left', left + $td.offset().left + $td.outerWidth() - editor.win.pageXOffset - btn_width / 2);
           $insert_helper.data('selected-cell', $td);
           $insert_helper.data('position', 'after');
           $insert_helper.addClass('fr-visible');
@@ -2899,8 +2843,8 @@
         if ($tr.offset().top <= mouseY && mouseY < $tr.offset().top + $tr.outerHeight() / 2) {
           btn_width = parseInt($insert_helper.find('a').css('width'), 10);
 
-          $insert_helper.css('top', top + $tr.offset().top - editor.$box.offset().top - editor.win.pageYOffset - btn_width / 2);
-          $insert_helper.css('left', left + $tr.offset().left - editor.$box.offset().left - editor.win.pageXOffset - btn_width - 5);
+          $insert_helper.css('top', top + $tr.offset().top - editor.win.pageYOffset - btn_width / 2);
+          $insert_helper.css('left', left + $tr.offset().left - editor.win.pageXOffset - btn_width - 5);
           $insert_helper.data('selected-cell', $tr.find('td:first'));
           $insert_helper.data('position', 'above');
           $insert_helper.addClass('fr-visible');
@@ -2912,8 +2856,8 @@
         else if ($tr.offset().top + $tr.outerHeight() / 2 <= mouseY && mouseY < $tr.offset().top + $tr.outerHeight()) {
           btn_width = parseInt($insert_helper.find('a').css('width'), 10);
 
-          $insert_helper.css('top', top + $tr.offset().top - editor.$box.offset().top + $tr.outerHeight() - editor.win.pageYOffset - btn_width / 2);
-          $insert_helper.css('left', left + $tr.offset().left - editor.$box.offset().left - editor.win.pageXOffset - btn_width - 5);
+          $insert_helper.css('top', top + $tr.offset().top + $tr.outerHeight() - editor.win.pageYOffset - btn_width / 2);
+          $insert_helper.css('left', left + $tr.offset().left - editor.win.pageXOffset - btn_width - 5);
           $insert_helper.data('selected-cell', $tr.find('td:first'));
           $insert_helper.data('position', 'below');
           $insert_helper.addClass('fr-visible');
@@ -3072,14 +3016,11 @@
             $first_cell = $(map[i][first]);
             $second_cell = $(map[i][second]);
 
-            // There is a colspan.
-            if (map[i][first] != map[i][second]) {
-              // New percentage for the first cell.
-              var first_cell_percentage = (first_percentages[i] * (first_widths[i] + release_position - initial_positon) / first_widths[i]).toFixed(4);
+            // New percentage for the first cell.
+            var first_cell_percentage = (first_percentages[i] * (first_widths[i] + release_position - initial_positon) / first_widths[i]).toFixed(4);
 
-              $first_cell.css('width', first_cell_percentage + '%');
-              $second_cell.css('width', (first_percentages[i] + second_percentages[i] - first_cell_percentage).toFixed(4) + '%');
-            }
+            $first_cell.css('width', first_cell_percentage + '%');
+            $second_cell.css('width', (first_percentages[i] + second_percentages[i] - first_cell_percentage).toFixed(4) + '%');
           }
         }
 
@@ -3109,8 +3050,6 @@
 
         editor.selection.restore();
         editor.undo.saveStep();
-
-        editor.events.trigger('table.resized', [$table.get(0)]);
       }
 
       // Clear resizer data.
@@ -3190,17 +3129,17 @@
 
         // Cursor is between the left and right limits.
         if (pos >= left_limit && pos <= right_limit) {
-          $resizer.css('left', pos - editor.opts.tableResizerOffset - editor.$wp.offset().left);
+          $resizer.css('left', pos - editor.opts.tableResizerOffset);
 
         // Cursor has exceeded the left limit. Don't update if it already has the correct value.
         }
         else if (pos < left_limit && parseFloat($resizer.css('left'), 10) > left_limit - editor.opts.tableResizerOffset) {
-          $resizer.css('left', left_limit - editor.opts.tableResizerOffset - editor.$wp.offset().left);
+          $resizer.css('left', left_limit - editor.opts.tableResizerOffset);
 
         // Cursor has exceeded the right limit. Don't update if it already has the correct value.
         }
         else if (pos > right_limit && parseFloat($resizer.css('left'), 10) < right_limit - editor.opts.tableResizerOffset) {
-          $resizer.css('left', right_limit - editor.opts.tableResizerOffset - editor.$wp.offset().left);
+          $resizer.css('left', right_limit - editor.opts.tableResizerOffset);
         }
       }
       else if (mouseDownFlag) {
@@ -3240,23 +3179,16 @@
           if (cell.tagName == 'TD' || cell.tagName == 'TH') {
             $cell = $(cell);
           }
-          else if (cell != editor.el) {
-            if ($(cell).parentsUntil(editor.$el, 'td').length > 0) {
-              $cell = $(cell).parents('td:first');
-            }
-            else if ($(cell).parentsUntil(editor.$el, 'th').length > 0) {
-              $cell = $(cell).parents('th:first');
-            }
+          else if ($(cell).parentsUntil(editor.$el, 'td').length > 0) {
+            $cell = $(cell).parents('td:first');
+          }
+          else if ($(cell).parentsUntil(editor.$el, 'th').length > 0) {
+            $cell = $(cell).parents('th:first');
           }
         }
 
         if ($cell) {
           e.preventDefault();
-
-          if ($(editor.selection.element()).parentsUntil(editor.$el, 'ol, ul').length > 0 && ($(editor.selection.element()).parents('li').prev().length > 0 || ($(editor.selection.element()).is('li') && $(editor.selection.element()).prev().length > 0))) {
-
-            return true;
-          }
 
           _stopEdit();
 
@@ -3331,40 +3263,27 @@
           var inst = $insert_helper.data('instance') || editor;
 
           if (position == 'before') {
-            editor.undo.saveStep();
-
             $td.addClass('fr-selected-cell');
             inst.table.insertColumn(position);
             $td.removeClass('fr-selected-cell');
 
-            editor.undo.saveStep();
           }
           else if (position == 'after') {
-            editor.undo.saveStep();
-
             $td.addClass('fr-selected-cell');
             inst.table.insertColumn(position);
             $td.removeClass('fr-selected-cell');
 
-            editor.undo.saveStep();
           }
           else if (position == 'above') {
-            editor.undo.saveStep();
-
             $td.addClass('fr-selected-cell');
             inst.table.insertRow(position);
             $td.removeClass('fr-selected-cell');
 
-            editor.undo.saveStep();
           }
           else if (position == 'below') {
-            editor.undo.saveStep();
-
             $td.addClass('fr-selected-cell');
             inst.table.insertRow(position);
             $td.removeClass('fr-selected-cell');
-
-            editor.undo.saveStep();
           }
 
           // Hide the insert helper so it will reposition.
@@ -3475,7 +3394,7 @@
         // Select this cell.
         if (cell) {
           e.preventDefault();
-          selectCells(cell, cell);
+          _selectCells(cell, cell);
           _showEditPopup();
 
           return false;
@@ -3486,7 +3405,7 @@
     /**
      * Select table cells using arrows.
      */
-    function selectCellsWithKeyboard (e) {
+    function _selectCellsWithKeyboard (e) {
       var selection = selectedCells();
 
       // There are some selected cells.
@@ -3512,7 +3431,7 @@
         // Select column at the right.
         if ($.FE.KEYCODE.ARROW_RIGHT == key_code) {
           if (handlerOrigin.col < map[0].length - 1) {
-            selectCells(fixedCell, map[handlerOrigin.row][handlerOrigin.col + 1]);
+            _selectCells(fixedCell, map[handlerOrigin.row][handlerOrigin.col + 1]);
 
             return false;
           }
@@ -3521,7 +3440,7 @@
         // Select row below.
         else if ($.FE.KEYCODE.ARROW_DOWN == key_code) {
           if (handlerOrigin.row < map.length - 1) {
-            selectCells(fixedCell, map[handlerOrigin.row + 1][handlerOrigin.col]);
+            _selectCells(fixedCell, map[handlerOrigin.row + 1][handlerOrigin.col]);
 
             return false;
           }
@@ -3530,7 +3449,7 @@
         // Select column at the left.
         else if ($.FE.KEYCODE.ARROW_LEFT == key_code) {
           if (handlerOrigin.col > 0) {
-            selectCells(fixedCell, map[handlerOrigin.row][handlerOrigin.col - 1]);
+            _selectCells(fixedCell, map[handlerOrigin.row][handlerOrigin.col - 1]);
 
             return false;
           }
@@ -3539,7 +3458,7 @@
         // Select row above.
         else if ($.FE.KEYCODE.ARROW_UP == key_code) {
           if (handlerOrigin.row > 0) {
-            selectCells(fixedCell, map[handlerOrigin.row - 1][handlerOrigin.col]);
+            _selectCells(fixedCell, map[handlerOrigin.row - 1][handlerOrigin.col]);
 
             return false;
           }
@@ -3632,29 +3551,10 @@
           }
         }, true);
 
-        // Allow keyboard while selecting table cells.
-        // https://github.com/froala/wysiwyg-editor/issues/2256
-        editor.events.$on($(editor.o_win), 'keydown', function () {
-          if (mouseDownFlag && mouseDownCellFlag) {
-            mouseDownFlag = false;
-            mouseDownCellFlag = false;
-
-            // Allow text selection.
-            editor.$el.removeClass('fr-no-selection');
-            editor.edit.on();
-
-            editor.selection.setAtEnd(editor.$el.find('.fr-selected-cell:last').get(0));
-            editor.selection.restore();
-
-            // Remove selected cells.
-            _removeSelection();
-          }
-        });
-
         // Selecting cells with keyboard or moving cursor with arrow keys.
         editor.events.$on(editor.$el, 'keydown', function (e) {
           if (e.shiftKey) {
-            if (selectCellsWithKeyboard(e) === false) {
+            if (_selectCellsWithKeyboard(e) === false) {
 
               // Timeout needed due to clearSelection timeout.
               setTimeout(function () {
@@ -3704,7 +3604,7 @@
             }
 
             // Backspace clears selected cells content.
-            if (selected_cells.length > 1 && (e.which == $.FE.KEYCODE.BACKSPACE || e.which == $.FE.KEYCODE.DELETE)) {
+            if (selected_cells.length > 1 && e.which == $.FE.KEYCODE.BACKSPACE) {
               editor.undo.saveStep();
 
               for (var i = 0; i < selected_cells.length; i++) {
@@ -3787,9 +3687,7 @@
       horizontalAlign: horizontalAlign,
       applyStyle: applyStyle,
       selectedTable: selectedTable,
-      selectedCells: selectedCells,
-      customColor: customColor,
-      selectCells: selectCells
+      selectedCells: selectedCells
     }
   };
 
@@ -3824,10 +3722,7 @@
   })
 
   // Table header button.
-  $.FE.DefineIcon('tableHeader', {
-    NAME: 'header',
-    FA5NAME: 'heading'
-  })
+  $.FE.DefineIcon('tableHeader', { NAME: 'header' })
   $.FE.RegisterCommand('tableHeader', {
     title: 'Table Header',
     focus: false,
@@ -3932,10 +3827,7 @@
   });
 
   // Table cells action dropdown.
-  $.FE.DefineIcon('tableCells', {
-    NAME: 'square-o',
-    FA5NAME: 'square'
-  })
+  $.FE.DefineIcon('tableCells', { NAME: 'square-o' })
   $.FE.RegisterCommand('tableCells', {
     type: 'dropdown',
     focus: false,
@@ -4077,10 +3969,7 @@
   });
 
   // Table vertical align dropdown.
-  $.FE.DefineIcon('tableCellVerticalAlign', {
-    NAME: 'arrows-v',
-    FA5NAME: 'arrows-alt-v'
-  })
+  $.FE.DefineIcon('tableCellVerticalAlign', { NAME: 'arrows-v' })
   $.FE.RegisterCommand('tableCellVerticalAlign', {
     type: 'dropdown',
     focus: false,
@@ -4189,15 +4078,5 @@
       }
     }
   });
-
-  $.FE.RegisterCommand('tableCellBackgroundCustomColor', {
-    title: 'OK',
-    undo: true,
-    callback: function () {
-      this.table.customColor();
-    }
-  });
-
-  $.FE.DefineIcon('tableColorRemove', { NAME: 'eraser' });
 
 }));

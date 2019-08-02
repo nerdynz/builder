@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -33,7 +33,7 @@
 
   
 
-  $.FE.URLRegEx = '(^| |\\u00A0)(' + $.FE.LinkRegEx + '|' + '([a-z0-9+-_.]{1,}@[a-z0-9+-_.]{1,}\\.[a-z0-9+-_]{1,})' + ')$';
+  $.FE.URLRegEx = '(^| |\\u00A0)(' + $.FE.LinkRegEx + '|' + '([a-z0-9+-_.]{1,}@[a-z0-9+-_.]{1,})' + ')$';
 
   $.FE.PLUGINS.url = function (editor) {
     var rel = null;
@@ -42,30 +42,23 @@
      * Transform string into a hyperlink.
      */
     function _linkReplaceHandler (match, p1, p2) {
-      var dots = '';
-
-      while (p2.length && p2[p2.length - 1] == '.') {
-        dots += '.';
-        p2 = p2.substring(0, p2.length - 1);
-      }
 
       var link = p2;
 
       // Convert email.
       if (editor.opts.linkConvertEmailAddress) {
-        if (editor.helpers.isEmail(link) && !/^mailto:.*/i.test(link)) {
+        var regex = $.FE.MAIL_REGEX;
+
+        if (regex.test(link) && !/^mailto:.*/i.test(link)) {
           link = 'mailto:' + link;
         }
-      }
-      else if (editor.helpers.isEmail(link)) {
-        return p1 + p2;
       }
 
       if (!/^((http|https|ftp|ftps|mailto|tel|sms|notes|data)\:)/i.test(link)) {
         link = '//' + link;
       }
 
-      return (p1 ? p1 : '') + '<a' + (editor.opts.linkAlwaysBlank ? ' target="_blank"' : '') + (rel ? (' rel="' + rel + '"') : '') + ' data-fr-linked="true" href="' + link + '">' + p2.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/&amp;/g, '&').replace(/&/g, '&amp;') + '</a>' + dots;
+      return (p1 ? p1 : '') + '<a' + (editor.opts.linkAlwaysBlank ? ' target="_blank"' : '') + (rel ? (' rel="' + rel + '"') : '') + ' href="' + link + '">' + p2 + '</a>' ;
     }
 
     function _getRegEx () {
@@ -83,15 +76,8 @@
 
       // https://github.com/froala/wysiwyg-editor/issues/1576.
       if (editor.opts.linkAlwaysBlank) {
-        if (editor.opts.linkNoOpener) {
-          if (!rel) rel = 'noopener';
-          else rel += ' noopener';
-        }
-
-        if (editor.opts.linkNoReferrer) {
-          if (!rel) rel = 'noreferrer';
-          else rel += ' noreferrer';
-        }
+        if (!rel) rel = 'noopener noreferrer';
+        else rel += ' noopener noreferrer';
       }
 
       return html.replace(_getRegEx(), _linkReplaceHandler);
@@ -107,36 +93,23 @@
       return false;
     }
 
-    function _lastPart(text) {
-      var splits = text.split(' ');
-
-      return splits[splits.length - 1];
-    }
-
     function _inlineType () {
       var range = editor.selection.ranges(0);
       var node = range.startContainer;
 
-      if (!node || node.nodeType !== Node.TEXT_NODE || range.startOffset !== (node.textContent || '').length) return false;
+      if (!node || node.nodeType !== Node.TEXT_NODE) return false;
 
       if (_isA(node)) return false;
 
-      if (_getRegEx().test(_lastPart(node.textContent))) {
+      if (_getRegEx().test(node.textContent)) {
         $(node).before(_convertToLink(node.textContent));
 
-        // Get linked link.
-        var $link = $(node.parentNode).find('a[data-fr-linked]');
-        $link.removeAttr('data-fr-linked');
-
         node.parentNode.removeChild(node);
-
-        // Trigger link event.
-        editor.events.trigger('url.linked', [$link.get(0)]);
       }
-      else if (node.textContent.split(' ').length <= 2 && node.previousSibling && node.previousSibling.tagName === 'A') {
+      else if (node.previousSibling && node.previousSibling.tagName === 'A') {
         var text = node.previousSibling.innerText + node.textContent;
 
-        if (_getRegEx().test(_lastPart(text))) {
+        if (_getRegEx().test(text)) {
           $(node.previousSibling).replaceWith(_convertToLink(text));
 
           node.parentNode.removeChild(node);
@@ -148,42 +121,20 @@
      * Initialize.
      */
     function _init () {
-      // Handle special keys.
-      editor.events.on('keypress', function (e) {
-        if (editor.selection.isCollapsed() && (e.key == '.' || e.key == ')' || e.key == '(')) {
-          _inlineType();
-        }
-      }, true);
+      editor.events.on('paste.afterCleanup', function (html) {
+        if ((new RegExp($.FE.URLRegEx,'gi')).test(html)) {
 
-      // Handle ENTER and SPACE.
+          return _convertToLink(html);
+        }
+      });
+
       editor.events.on('keydown', function (e) {
         var keycode = e.which;
 
-        if (editor.selection.isCollapsed() && (keycode == $.FE.KEYCODE.ENTER || keycode == $.FE.KEYCODE.SPACE)) {
+        if (editor.selection.isCollapsed() && (keycode == $.FE.KEYCODE.ENTER || keycode == $.FE.KEYCODE.SPACE || keycode == $.FE.KEYCODE.PERIOD)) {
           _inlineType();
         }
       }, true);
-
-      // Handle pasting.
-      editor.events.on('paste.beforeCleanup', function (html) {
-        if (editor.helpers.isURL(html)) {
-          var rel_attr = null;
-
-          if (editor.opts.linkAlwaysBlank) {
-            if (editor.opts.linkNoOpener) {
-              if (!rel_attr) rel_attr = 'noopener';
-              else rel_attr += ' noopener';
-            }
-
-            if (editor.opts.linkNoReferrer) {
-              if (!rel_attr) rel_attr = 'noreferrer';
-              else rel_attr += ' noreferrer';
-            }
-          }
-
-          return '<a' + (editor.opts.linkAlwaysBlank ? ' target="_blank"' : '') + (rel_attr ? (' rel="' + rel_attr + '"') : '') + ' href="' + html + '" >' + html + '</a>';
-        }
-      })
     }
 
     return {

@@ -2,11 +2,11 @@
   <div class="picture-avatar">
     <div class="avatar-img">
       <img v-if="user.Picture" :src="user.Picture" :alt="user.Name">
-      <avatar v-else :username="user.Name"></avatar>
+      <avatar v-else :username="user.Name" />
     </div>
-    <div  class="name">
-      <span v-if="fullname">{{user.Name}}</span>
-      <span v-else>{{firstName}}</span>
+    <div class="name">
+      <span v-if="fullname">{{ user.Name }}</span>
+      <span v-else>{{ firstName }}</span>
     </div>
   </div>
 </template>
@@ -22,8 +22,18 @@ export default {
     Avatar
   },
   props: {
-    user: Object,
-    fullname: Boolean
+    user: {
+      type: Object,
+      default: null
+    },
+    fullname: {
+      type: Boolean,
+      default: false
+    }
+  },
+  data () {
+    return {
+    }
   },
   computed: {
     firstName: function () {
@@ -32,38 +42,12 @@ export default {
       }
       return ''
     }
-  },
-  methods: {},
-  watch: {},
-  data () {
-    return {
-    }
-  },
-
-  // LIFECYCLE METHODS
-  // ______________________________________
-  beforeCreate () {
-  },
-  created () {
-  },
-  beforeMount () {
-  },
-  mounted () {
-  },
-  beforeUpdate () {
-  },
-  updated () {
-  },
-  beforeDestroy () {
-  },
-  destroyed () {
   }
 }
 </script>
 
 <style lang="scss">
   @import "~public/scss/_variables";
-
   .picture-avatar {
     display: flex;
     align-items: center;
@@ -79,7 +63,7 @@ export default {
     }
     .name {
       padding: 0.5rem;
-      color: invert($color: $sidebar-color);
+      color: $white;
       font-weight: bold;
     }
   }

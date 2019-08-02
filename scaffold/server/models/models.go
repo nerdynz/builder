@@ -16,11 +16,11 @@ var modelCache *redis.Client
 var modelDecoder *schema.Decoder
 
 func Init(db *runner.DB, redis *redis.Client) {
-	modelValidator = validator.New()
 	modelDecoder = schema.NewDecoder()
 	modelDecoder.IgnoreUnknownKeys(true)
 	modelDB = db
 	modelCache = redis
+	modelValidator = validator.New()
 }
 
 type PagedData struct {

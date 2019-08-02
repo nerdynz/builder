@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -34,7 +34,7 @@
   
 
   $.extend($.FE.POPUP_TEMPLATES, {
-    'colors.picker': '[_BUTTONS_][_TEXT_COLORS_][_BACKGROUND_COLORS_][_CUSTOM_COLOR_]'
+    'colors.picker': '[_BUTTONS_][_TEXT_COLORS_][_BACKGROUND_COLORS_]'
   })
 
   // Extend defaults.
@@ -52,7 +52,6 @@
       '#FAC51C', '#F37934', '#D14841', '#B8312F', '#7C706B', '#D1D5D8', 'REMOVE'
     ],
     colorsStep: 7,
-    colorsHEXInput: true,
     colorsDefaultTab: 'text',
     colorsButtons: ['colorsBack', '|', '-']
   });
@@ -115,18 +114,10 @@
 
       colors_buttons += _colorsTabsHTML() + '</div>';
 
-      // Custom HEX.
-      var custom_color = '';
-
-      if (editor.opts.colorsHEXInput) {
-        custom_color = '<div class="fr-color-hex-layer fr-active fr-layer" id="fr-color-hex-layer-' + editor.id + '"><div class="fr-input-line"><input maxlength="7" id="fr-color-hex-layer-text-' + editor.id + '" type="text" placeholder="' + editor.language.translate('HEX Color') + '" tabIndex="1" aria-required="true"></div><div class="fr-action-buttons"><button type="button" class="fr-command fr-submit" data-cmd="customColor" tabIndex="2" role="button">' + editor.language.translate('OK') + '</button></div></div>';
-      }
-
       var template = {
         buttons: colors_buttons,
         text_colors: _colorPickerHTML('text'),
-        background_colors: _colorPickerHTML('background'),
-        custom_color: custom_color
+        background_colors: _colorPickerHTML('background')
       };
 
       // Create popup.
@@ -312,12 +303,6 @@
           break;
         }
       }
-
-      var $input = $popup.find('.fr-color-hex-layer input');
-
-      if ($input.length) {
-        $input.val(editor.helpers.RGBToHex($element.css(color_type))).trigger('change');
-      }
     }
 
     /*
@@ -389,30 +374,11 @@
       editor.toolbar.showInline();
     }
 
-    function customColor () {
-      var $popup = editor.popups.get('colors.picker');
-
-      var $input = $popup.find('.fr-color-hex-layer input');
-
-      if ($input.length) {
-        var color = $input.val()
-        var tab = $popup.find('.fr-selected-tab').attr('data-param1');
-
-        if (tab == 'background') {
-          background(color);
-        }
-        else {
-          text(color);
-        }
-      }
-    }
-
     return {
       showColorsPopup: _showColorsPopup,
       hideColorsPopup: _hideColorsPopup,
       changeSet: _changeSet,
       background: background,
-      customColor: customColor,
       text: text,
       back: back
     }
@@ -478,14 +444,6 @@
       this.colors.back();
     }
   });
-
-  $.FE.RegisterCommand('customColor', {
-    title: 'OK',
-    undo: true,
-    callback: function () {
-      this.colors.customColor();
-    }
-  })
 
   $.FE.DefineIcon('remove', { NAME: 'eraser' });
 

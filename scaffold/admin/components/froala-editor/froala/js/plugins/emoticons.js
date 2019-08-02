@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -456,10 +456,7 @@
   }
 
   // Toolbar emoticons button.
-  $.FE.DefineIcon('emoticons', {
-    NAME: 'smile-o',
-    FA5NAME: 'smile'
-  });
+  $.FE.DefineIcon('emoticons', { NAME: 'smile-o' });
   $.FE.RegisterCommand('emoticons', {
     title: 'Emoticons',
     undo: false,

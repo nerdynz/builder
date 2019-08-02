@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -38,7 +38,7 @@
     imageManagerLoadURL: 'https://i.froala.com/load-files',
     imageManagerLoadMethod: 'get',
     imageManagerLoadParams: {},
-    imageManagerPreloader: null,
+    imageManagerPreloader: '',
     imageManagerDeleteURL: '',
     imageManagerDeleteMethod: 'post',
     imageManagerDeleteParams: {},
@@ -100,14 +100,7 @@
         head += '<div class="fr-modal-tags" id="fr-modal-tags"></div>';
 
         // Preloader.
-        var body;
-
-        if (editor.opts.imageManagerPreloader) {
-          body = '<img class="fr-preloader" id="fr-preloader" alt="' + editor.language.translate('Loading') + '.." src="' + editor.opts.imageManagerPreloader + '" style="display: none;">';
-        }
-        else {
-          body = '<span class="fr-preloader" id="fr-preloader" style="display: none;">' + editor.language.translate('Loading') + '</span>';
-        }
+        var body = '<img class="fr-preloader" id="fr-preloader" alt="' + editor.language.translate('Loading') + '.." src="' + editor.opts.imageManagerPreloader + '" style="display: none;">';
 
         // Image list.
         body += '<div class="fr-image-list" id="fr-image-list"></div>';
@@ -645,7 +638,8 @@
               })
 
               // On fail throw error during request.
-              .fail(function (xhr) {
+              .fail(function () {
+                var xhr = this.xhr();
                 _throwError(ERROR_DURING_DELETE, xhr.response || xhr.responseText);
               });
           }

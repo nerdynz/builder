@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"go/build"
 	"html/template"
 	"net/http"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/nerdynz/helpers"
 
@@ -116,7 +119,9 @@ func addFields(c *cli.Context, r *render.Render, db *runner.DB) error {
 func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
 	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations")
 	finalError := ""
-	if !ok {
+	if ok && errs == nil {
+		// sweet
+	} else {
 		for _, err := range errs {
 			finalError += err.Error() + "\n"
 		}
@@ -219,8 +224,15 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	ext = strings.Replace(ext, ":TableNameCamelID", camelCase(snaker.SnakeToCamel(tableID)), -1)
 	fullpath := folderPath + ext
 
-	fo, _ := os.Create(fullpath)
+	fo, err := os.Create(fullpath)
+	if err != nil {
+		return err
+	}
+
 	template := r.TemplateLookup(tmpl)
+	if template == nil {
+		return cli.NewExitError("error 42: template not found", 1)
+	}
 	wr := bufio.NewWriter(fo)
 	err = template.Execute(wr, bucket.Data)
 	if err != nil {
@@ -238,7 +250,11 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	fullpathNoTemp := strings.Replace(fullpath, ".tmp", "", 1)
 	skip := c.Bool("skip") || skipDiff
 	if !skip {
-		err = exec.Command("bcomp", fullpath, fullpathNoTemp).Run()
+		diffCommand := os.Getenv("DIFF_COMMAND")
+		if diffCommand == "" {
+			diffCommand = "bcomp"
+		}
+		err = exec.Command(diffCommand, fullpath, fullpathNoTemp).Run()
 		if err != nil {
 			return cli.NewExitError("error 40: "+err.Error(), 1)
 		}
@@ -376,4 +392,62 @@ func camelCase(str string) string {
 	letters[0] = strings.ToLower(letters[0])
 	str = strings.Join(letters, "")
 	return str
+}
+
+func visit(path string, fi os.FileInfo, err error) error {
+
+	if err != nil {
+		return err
+	}
+
+	if !!fi.IsDir() {
+		return nil //
+	}
+
+	matched, err := filepath.Match("*.txt", fi.Name())
+
+	if err != nil {
+		panic(err)
+		return err
+	}
+
+	if matched {
+		read, err := ioutil.ReadFile(path)
+		if err != nil {
+			panic(err)
+		}
+		//fmt.Println(string(read))
+		fmt.Println(path)
+
+		newContents := strings.Replace(string(read), "old", "new", -1)
+
+		fmt.Println(newContents)
+
+		err = ioutil.WriteFile(path, []byte(newContents), 0)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+
+	return nil
+}
+
+func walkFiles(c *cli.Context, r *render.Render, db *runner.DB) {
+	err := filepath.Walk(".", visit)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func createProject(c *cli.Context, r *render.Render) error {
+	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/builder/scaffold"
+	projectName := c.Args().First()
+	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
+	if strings.Contains(projectName, "/") || outpath == "" || projectName == "" {
+		return errors.New("Did you specify a project name and path?")
+	}
+	fmt.Println("copying " + fullpath + " to " + outpath)
+	err := Copy(fullpath, outpath)
+	return err
 }

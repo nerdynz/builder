@@ -2,7 +2,7 @@ import dateformat from 'dateformat'
 import fromNow from 'time-from-now'
 
 function fmtTimeAgo (date) {
-  var d = new Date(date)
+  let d = new Date(date)
   d = fromNow(d)
   return d === 'now' ? d : d + ' ago'
 }
@@ -39,7 +39,7 @@ function fmtCamel (str) {
 }
 
 function fmtKebab (str) {
-  var result = str
+  let result = str
 
   // Convert camelCase capitals to kebab-case.
   result = result.replace(/([a-z][A-Z])/g, function (match) {

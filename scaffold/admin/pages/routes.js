@@ -7,7 +7,7 @@ export default function () {
     },
     'pages': {
       title: 'Pages',
-      icon: 'fa-file-text',
+      icon: 'fa-file',
       children: {
         'pages-ID-pageEdit': {
           title: function (instance) {
@@ -16,27 +16,48 @@ export default function () {
         },
         'pages-ID-pageLayout': {
           title: 'Edit Page Layout'
+        },
+        'pages-ID-pageSlides': {
+          title: 'Edit Page Slides'
         }
       }
     },
-    'works': {
-      title: 'Portfolio',
-      icon: 'fa-heart-o',
+    'events': {
+      title: 'Events',
+      icon: 'fa-heart',
       children: {
-        'works-workID': {
+        'events-ID-pageEdit': {
           title: function (instance) {
-            return instance.$route.params.workID === '0' ? 'Create Portfolio Job' : 'Edit Portfolio Job'
+            return instance.$route.params.pageID === 0 ? 'Create Page' : 'Edit Page'
+          }
+        },
+        'events-ID-pageLayout': {
+          title: 'Edit Page Layout'
+        },
+        'events-ID-pageSlides': {
+          title: 'Edit Page Slides'
+        }
+      }
+    },
+    'categoryImages': {
+      title: 'Category Images',
+      icon: 'fa-image',
+      children: {
+        'categoryImages-ID-categoryImageEdit': {
+          title: function (instance) {
+            return instance.$route.params.ID === 0 ? 'Create Category Image' : 'Edit Category Image'
           }
         }
       }
     },
+
     'people': {
-      title: 'Administrators',
-      icon: 'fa-users',
+      title: 'Person',
+      icon: 'fa-circle-o',
       children: {
-        'people-personID': {
+        'people-ID-personEdit': {
           title: function (instance) {
-            return instance.$route.params.personID === 0 ? 'Create Administrator' : 'Edit Administrator'
+            return instance.$route.params.ID === 0 ? 'Create Person' : 'Edit Person'
           }
         }
       }

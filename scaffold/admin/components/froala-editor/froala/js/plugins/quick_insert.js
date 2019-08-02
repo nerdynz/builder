@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -35,118 +35,90 @@
 
   // Extend defaults.
   $.extend($.FE.DEFAULTS, {
-    quickInsertButtons: ['image', 'video', 'embedly', 'table', 'ul', 'ol', 'hr'],
+    quickInsertButtons: ['image', 'table', 'ul', 'ol', 'hr'],
     quickInsertTags: ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'blockquote']
   });
 
-  $.FE.QUICK_INSERT_BUTTONS = {}
+  $.FE.QUICK_INSERT_BUTTONS = {
+    image: {
+      icon: 'insertImage',
+      callback: function () {
+        var editor = this;
+
+        if (!editor.shared.$qi_image_input) {
+          editor.shared.$qi_image_input = $('<input accept="image/*" name="quickInsertImage' + this.id + '" style="display: none;" type="file">');
+          $('body:first').append(editor.shared.$qi_image_input);
+
+          editor.events.$on(editor.shared.$qi_image_input, 'change', function () {
+            var inst = $(this).data('inst');
+
+            if (this.files) {
+              inst.quickInsert.hide();
+              inst.image.upload(this.files);
+            }
+
+            // Chrome fix.
+            $(this).val('');
+          }, true);
+        }
+
+        editor.$qi_image_input = editor.shared.$qi_image_input;
+
+        if (editor.helpers.isMobile()) editor.selection.save();
+        editor.$qi_image_input.data('inst', editor).trigger('click');
+      },
+      requiredPlugin: 'image',
+      title: 'Insert Image'
+    },
+    table: {
+      icon: 'insertTable',
+      callback: function () {
+        this.quickInsert.hide();
+        this.table.insert(2, 2);
+        this.undo.saveStep();
+      },
+      requiredPlugin: 'table',
+      title: 'Insert Table'
+    },
+    ol: {
+      icon: 'formatOL',
+      callback: function () {
+        this.quickInsert.hide();
+        this.lists.format('OL');
+        this.undo.saveStep();
+      },
+      requiredPlugin: 'lists',
+      title: 'Ordered List'
+    },
+    ul: {
+      icon: 'formatUL',
+      callback: function () {
+        this.quickInsert.hide();
+        this.lists.format('UL');
+        this.undo.saveStep();
+      },
+      requiredPlugin: 'lists',
+      title: 'Unordered List'
+    },
+    hr: {
+      icon: 'insertHR',
+      callback: function () {
+        this.quickInsert.hide();
+        this.commands.insertHR();
+        this.undo.saveStep();
+      },
+      title: 'Insert Horizontal Line'
+    }
+  }
 
   $.FE.DefineIcon('quickInsert', {
     PATH: '<path d="M22,16.75 L16.75,16.75 L16.75,22 L15.25,22.000 L15.25,16.75 L10,16.75 L10,15.25 L15.25,15.25 L15.25,10 L16.75,10 L16.75,15.25 L22,15.25 L22,16.75 Z"/>',
     template: 'svg'
   });
 
-  $.FE.RegisterQuickInsertButton = function (name, data) {
-    $.FE.QUICK_INSERT_BUTTONS[name] = $.extend({
-      undo: true
-    }, data);
+  $.FE.RegisterQuickInsertCommand = function (name, data) {
+    $.FE.QUICK_INSERT_BUTTONS[name] = data;
   }
-
-  $.FE.RegisterQuickInsertButton('image', {
-    icon: 'insertImage',
-    requiredPlugin: 'image',
-    title: 'Insert Image',
-    undo: false,
-    callback: function () {
-      var editor = this;
-
-      if (!editor.shared.$qi_image_input) {
-        editor.shared.$qi_image_input = $('<input accept="image/*" name="quickInsertImage' + this.id + '" style="display: none;" type="file">');
-        $('body:first').append(editor.shared.$qi_image_input);
-
-        editor.events.$on(editor.shared.$qi_image_input, 'change', function () {
-          var inst = $(this).data('inst');
-
-          if (this.files) {
-            inst.quickInsert.hide();
-            inst.image.upload(this.files);
-          }
-
-          // Chrome fix.
-          $(this).val('');
-        }, true);
-      }
-
-      editor.$qi_image_input = editor.shared.$qi_image_input;
-
-      if (editor.helpers.isMobile()) editor.selection.save();
-      editor.events.disableBlur();
-      editor.$qi_image_input.data('inst', editor).trigger('click');
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('video', {
-    icon: 'insertVideo',
-    requiredPlugin: 'video',
-    title: 'Insert Video',
-    undo: false,
-    callback: function () {
-      var res = prompt(this.language.translate('Paste the URL of the video you want to insert.'));
-
-      if (res) {
-        this.video.insertByURL(res);
-      }
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('embedly', {
-    icon: 'embedly',
-    requiredPlugin: 'embedly',
-    title: 'Embed URL',
-    undo: false,
-    callback: function () {
-      var res = prompt(this.language.translate('Paste the URL of any web content you want to insert.'));
-
-      if (res) {
-        this.embedly.add(res);
-      }
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('table', {
-    icon: 'insertTable',
-    requiredPlugin: 'table',
-    title: 'Insert Table',
-    callback: function () {
-      this.table.insert(2, 2);
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('ol', {
-    icon: 'formatOL',
-    requiredPlugin: 'lists',
-    title: 'Ordered List',
-    callback: function () {
-      this.lists.format('OL');
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('ul', {
-    icon: 'formatUL',
-    requiredPlugin: 'lists',
-    title: 'Unordered List',
-    callback: function () {
-      this.lists.format('UL');
-    }
-  })
-
-  $.FE.RegisterQuickInsertButton('hr', {
-    icon: 'insertHR',
-    title: 'Insert Horizontal Line',
-    callback: function () {
-      this.commands.insertHR();
-    }
-  })
 
   $.FE.PLUGINS.quickInsert = function (editor) {
     var $quick_insert;
@@ -154,7 +126,7 @@
     /*
      * Set the quick insert button left and top.
      */
-    function _place($tag) {
+    function _place ($tag) {
 
       // Quick insert's possition.
       var qiTop;
@@ -163,17 +135,7 @@
 
       qiTop = $tag.offset().top - editor.$box.offset().top;
       qiLeft = 0 - $quick_insert.outerWidth();
-
-      if (editor.opts.enter != $.FE.ENTER_BR) {
-        qiTagAlign = ($quick_insert.outerHeight() - $tag.outerHeight()) / 2;
-      }
-
-      // Enter key is BR. Insert an empty SPAN to get line height.
-      else {
-        $('<span>' + $.FE.INVISIBLE_SPACE + '</span>').insertAfter($tag)
-        qiTagAlign = ($quick_insert.outerHeight() - $tag.next().outerHeight()) / 2;
-        $tag.next().remove()
-      }
+      qiTagAlign = ($quick_insert.outerHeight() - $tag.outerHeight()) / 2;
 
       if (editor.opts.iframe) {
         qiTop += editor.$iframe.offset().top - editor.helpers.scrollTop();
@@ -207,7 +169,7 @@
      * Show quick insert.
      * Compute top, left, width and show the quick insert.
      */
-    function _show($tag) {
+    function _show ($tag) {
       if (!$quick_insert) _initquickInsert();
 
       // Hide the quick insert helper if visible.
@@ -229,35 +191,20 @@
     /*
      * Check the tag where the cursor is.
      */
-    function _checkTag() {
+    function _checkTag () {
+
       // If editor has focus.
       if (editor.core.hasFocus()) {
         var tag = editor.selection.element();
 
-        // Get block tag if Enter key is not BR.
-        if (editor.opts.enter != $.FE.ENTER_BR && !editor.node.isBlock(tag)) {
+        // Get block tag.
+        if (!editor.node.isBlock(tag)) {
           tag = editor.node.blockParent(tag);
         }
 
-        if (editor.opts.enter == $.FE.ENTER_BR && !editor.node.isBlock(tag)) {
-          var deep_tag = editor.node.deepestParent(tag);
+        // Tag must be empty block and direct child of element in order to show the quick insert.
+        if (tag && editor.node.isEmpty(tag) && editor.node.isElement(tag.parentNode) && editor.opts.quickInsertTags.indexOf(tag.tagName.toLowerCase()) >= 0) {
 
-          if (deep_tag) tag = deep_tag;
-        }
-
-        var _enterInBR = function () {
-          return (editor.opts.enter != $.FE.ENTER_BR && editor.node.isEmpty(tag) && editor.node.isElement(tag.parentNode) && editor.opts.quickInsertTags.indexOf(tag.tagName.toLowerCase()) >= 0);
-        }
-
-        var _enterInP = function () {
-          return (
-            editor.opts.enter == $.FE.ENTER_BR &&
-            ((tag.tagName == 'BR' && (!tag.previousSibling || tag.previousSibling.tagName == 'BR' || editor.node.isBlock(tag.previousSibling))) ||
-              (editor.node.isEmpty(tag) && (!tag.previousSibling || tag.previousSibling.tagName == 'BR' || editor.node.isBlock(tag.previousSibling)) && (!tag.nextSibling || tag.nextSibling.tagName == 'BR' || editor.node.isBlock(tag.nextSibling))))
-          );
-        }
-
-        if (tag && (_enterInBR() || _enterInP())) {
           // If the quick insert is not repositioned, just close the helper.
           if ($quick_insert && $quick_insert.data('tag').is($(tag)) && $quick_insert.hasClass('fr-on')) {
             _hideHelper();
@@ -279,8 +226,10 @@
     /*
      * Hide quick insert.
      */
-    function hide() {
+    function hide () {
       if ($quick_insert) {
+        editor.html.checkIfEmpty();
+
         // Hide the quick insert helper if visible.
         if ($quick_insert.hasClass('fr-on')) {
           _hideHelper();
@@ -297,7 +246,7 @@
      */
     var $helper;
 
-    function _showQIHelper(e) {
+    function _showQIHelper (e) {
       if (e) e.preventDefault();
 
       // Hide helper.
@@ -326,10 +275,6 @@
 
           // Quick insert helper tooltip.
           editor.tooltip.bind(editor.shared.$qi_helper, '> a.fr-btn');
-
-          editor.events.$on(editor.shared.$qi_helper, 'mousedown', function (e) {
-            e.preventDefault();
-          }, true);
         }
 
         $helper = editor.shared.$qi_helper;
@@ -348,26 +293,26 @@
     /*
      * Hides the quick insert helper and places the cursor.
      */
-    function _hideHelper() {
+    function _hideHelper () {
       var $helper = editor.$box.find('.fr-qi-helper');
 
       if ($helper.length) {
         $helper.find('a').removeClass('fr-size-1');
         $helper.css('left', -9999);
 
-        if (!$quick_insert.hasClass('fr-hidden')) $quick_insert.removeClass('fr-on');
+        if (!$quick_insert.hasClass('fr-hidden'))$quick_insert.removeClass('fr-on');
       }
     }
 
     /*
      * Initialize the quick insert.
      */
-    function _initquickInsert() {
+    function _initquickInsert () {
       if (!editor.shared.$quick_insert) {
+
         // Append quick insert HTML to editor wrapper.
         editor.shared.$quick_insert = $('<div class="fr-quick-insert"><a class="fr-floating-btn" role="button" tabIndex="-1" title="' + editor.language.translate('Quick Insert') + '">' + editor.icon.create('quickInsert') + '</a></div>');
       }
-
       $quick_insert = editor.shared.$quick_insert;
 
       // Quick Insert tooltip.
@@ -410,21 +355,7 @@
       editor.events.bindClick(editor.$box, '.fr-qi-helper > a.fr-btn', function (e) {
         var cmd = $(e.currentTarget).data('cmd');
 
-        // Trigger commands.before.
-        if (editor.events.trigger('quickInsert.commands.before', [cmd]) === false) {
-          return false;
-        }
-
         $.FE.QUICK_INSERT_BUTTONS[cmd].callback.apply(editor, [e.currentTarget]);
-
-        if ($.FE.QUICK_INSERT_BUTTONS[cmd].undo) {
-          editor.undo.saveStep();
-        }
-
-        // Trigger commands.after.
-        editor.events.trigger('quickInsert.commands.after', [cmd]);
-
-        editor.quickInsert.hide();
       });
 
       // Scroll in editor wrapper. Quick insert buttons should scroll along
@@ -438,7 +369,7 @@
     /*
      * Tear up.
      */
-    function _init() {
+    function _init () {
       if (!editor.$wp) return false;
 
       if (editor.opts.iframe) {

@@ -1,6 +1,6 @@
 export const state = () => ({
   isCheckingLogin: false,
-  isValid: true, // always true because we allow people to view a read only copy of the admin
+  isValid: false, // always true because we allow people to view a read only copy of the admin
   details: {
     token: '',
     expiration: '',
@@ -36,11 +36,11 @@ export const mutations = {
 }
 
 export const actions = {
-  login ({commit}, details) {
+  login ({ commit }, details) {
     let self = this.app
     commit('CHECKING', true)
     self.$axios.post('/api/v1/login', details)
-      .then(({data}) => {
+      .then(({ data }) => {
         // console.log(userDetails)
         // if (userDetails.Person.Role === 'Technician') {
         //   commit(types.SET_JOB_STATUS, 'Workshop')
@@ -49,12 +49,12 @@ export const actions = {
         commit('LOGIN', data)
         commit('CHECKING', false)
       })
-      .catch(({data}) => {
+      .catch(({ data }) => {
         commit('CHECKING', false)
       })
   },
 
-  logout ({commit}, details) {
+  logout ({ commit }, details) {
     commit('LOGOUT')
   }
 }

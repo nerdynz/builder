@@ -1,19 +1,18 @@
 <template>
-  <div class="u-fh">
-    <navbar v-show="!navbar.hidden"></navbar>
-    <sidebar :show="sidebarIsOpen"></sidebar>
+  <div class="application">
+    <sidebar :show="sidebarIsOpen" />
     <main :class="{'main-body': true, 'sidebar-open': sidebarIsOpen, 'nav-showing': !navbar.hidden}">
       <levelbar />
       <nuxt />
     </main>
-    <footer-bar></footer-bar>
+    <div class="footer-push" />
+    <footer-bar />
   </div>
 </template>
 <script>
 import { mapGetters, mapActions } from 'vuex'
 import Levelbar from '~/components/layout/Levelbar'
 import Sidebar from '~/components/layout/Sidebar'
-import Navbar from '~/components/layout/Navbar'
 import FooterBar from '~/components/layout/FooterBar'
 
 export default {
@@ -24,31 +23,21 @@ export default {
   components: {
     Levelbar,
     Sidebar,
-    FooterBar,
-    Navbar
+    FooterBar
+    // Navbar
   },
   props: {},
+  data () {
+    return {
+    }
+  },
   computed: {
     ...mapGetters({
       navbar: 'app/navbar',
       sidebarIsOpen: 'app/sidebarIsOpen'
     })
   },
-  methods: {
-    ...mapActions({
-      toggleDevice: 'app/toggleDevice',
-      toggleSidebar: 'app/toggleSidebar',
-      toggleNavbar: 'app/toggleNavbar'
-    })
-  },
   watch: {},
-  data () {
-    return {
-    }
-  },
-
-  // LIFECYCLE METHODS
-  // ______________________________________
   beforeCreate () {
   },
   created () {
@@ -77,6 +66,7 @@ export default {
     }, 200)
   },
   mounted () {
+
   },
   beforeUpdate () {
   },
@@ -85,6 +75,16 @@ export default {
   beforeDestroy () {
   },
   destroyed () {
+  },
+  methods: {
+    updateToken (token) {
+      this.$axios.get('/api/v1/updatetoken?token=' + token)
+    },
+    ...mapActions({
+      toggleDevice: 'app/toggleDevice',
+      toggleSidebar: 'app/toggleSidebar',
+      toggleNavbar: 'app/toggleNavbar'
+    })
   }
 }
 </script>
@@ -95,14 +95,18 @@ export default {
 @import "~public/scss/content.scss";
 @import "~public/scss/utility.scss";
 @import 'vue-multiselect/dist/vue-multiselect.min.css';
+@import url('https://fonts.googleapis.com/css?family=Muli:300,400,700,900');
+
 .nuxt-progress {
   background-color: $green !important;
 }
-
+.application {
+  background: $background;
+}
 .main-body {
   @media (min-width: $tablet) {
     &.sidebar-open {
-      padding-left: 250px;
+      padding-left: $sidebar-width;
     }
   }
   &.nav-showing {

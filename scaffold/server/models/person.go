@@ -13,11 +13,14 @@ import (
 	"sort"
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
+	"github.com/nerdynz/security"
 	validator "gopkg.in/go-playground/validator.v9"
 	redis "gopkg.in/redis.v5"
 )
 
-// Person Struct
+var personHelperGlobal *personHelper
+
+// Person Record
 type Person struct {
 	PersonID     int       `db:"person_id" json:"PersonID"`
 	Name         string    `db:"name" json:"Name"`
@@ -28,41 +31,61 @@ type Person struct {
 	Picture      string    `db:"picture" json:"Picture"`
 	DateCreated  time.Time `db:"date_created" json:"DateCreated"`
 	DateModified time.Time `db:"date_modified" json:"DateModified"`
+	ULID         string    `db:"ulid" json:"ULID"`
 }
 
-var personHelperGlobal *personHelper
+type People []*Person
 
-type Persons []*Person
+func (h *personHelper) beforeSave(record *Person) (err error) {
+	if record.DateCreated.IsZero() {
+		record.DateCreated = time.Now()
+	}
+	record.DateModified = time.Now()
+	if record.ULID == "" {
+		record.ULID = security.ULID()
+	}
 
+	validationErr := h.validate(record)
+	if validationErr != nil {
+		return validationErr
+	}
+	return err
+}
+
+func (h *personHelper) afterSave(record *Person) (err error) {
+	return err
+}
+
+// GENERATED CODE - Leave the below code alone
 type personHelper struct {
 	DB            *runner.DB
 	Cache         *redis.Client
-	Validator     *validator.Validate
 	structDecoder *schema.Decoder
+	validator     *validator.Validate
 	fieldNames    []string
 	orderBy       string
 }
 
 func PersonHelper() *personHelper {
 	if personHelperGlobal == nil {
-		personHelperGlobal = newPersonHelper(modelDB, modelCache, modelValidator, modelDecoder)
+		personHelperGlobal = newPersonHelper(modelDB, modelCache, modelDecoder, modelValidator)
 	}
 	return personHelperGlobal
 }
 
-func newPersonHelper(db *runner.DB, redis *redis.Client, validate *validator.Validate, structDecoder *schema.Decoder) *personHelper {
+func newPersonHelper(db *runner.DB, redis *redis.Client, d *schema.Decoder, v *validator.Validate) *personHelper {
 	helper := &personHelper{}
 	helper.DB = db
 	helper.Cache = redis
-	helper.Validator = validate
-	helper.structDecoder = structDecoder
+	helper.structDecoder = d
+	helper.validator = v
 
 	// Fields
-	fieldnames := []string{"person_id", "name", "email", "password", "phone", "role", "picture", "date_created", "date_modified"}
+	fieldnames := []string{"person_id", "name", "email", "password", "phone", "role", "picture", "date_created", "date_modified", "ulid"}
 	sort.Strings(fieldnames) // sort it makes searching it work correctly
 	helper.fieldNames = fieldnames
-	helper.orderBy = "date_created, date_modified"
 
+	helper.orderBy = "date_created, date_modified"
 	return helper
 }
 
@@ -73,55 +96,41 @@ func (h *personHelper) New() *Person {
 	return record
 }
 
-func (h *personHelper) NewFromRequest(req *http.Request) (*Person, error) {
+func (h *personHelper) FromRequest(req *http.Request) (*Person, error) {
 	record := h.New()
-	err := h.UpdateFromRequest(req, record)
-	if err != nil {
-		return nil, err
-	}
-	return record, nil
-}
-
-func (h *personHelper) LoadAndUpdateFromRequest(req *http.Request) (*Person, error) {
-	// dummyPack is used to get the pack ID from the request and also to check the date modified
-	newRecord, err := h.NewFromRequest(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if newRecord.PersonID <= 0 {
-		return nil, errors.New("The  failed to load because PersonID was not found in the request.")
-	}
-
-	return newRecord, nil
-}
-
-func (h *personHelper) UpdateFromRequest(req *http.Request, record *Person) error {
 	contentType := req.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
 		// working with json
 		decoder := json.NewDecoder(req.Body)
 		err := decoder.Decode(record)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		// working with form values
 		err := req.ParseForm()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		err = h.structDecoder.Decode(record, req.PostForm)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return record, nil
 }
 
-func (h *personHelper) All() (Persons, error) {
-	var records Persons
+func (h *personHelper) Load(id int) (*Person, error) {
+	record, err := h.One("person_id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (h *personHelper) All() (People, error) {
+	var records People
 	err := h.DB.Select("*").
 		From("person").
 		OrderBy(h.orderBy).
@@ -134,8 +143,8 @@ func (h *personHelper) All() (Persons, error) {
 	return records, nil
 }
 
-func (h *personHelper) Where(whereSQLOrMap interface{}, args ...interface{}) (Persons, error) {
-	var records Persons
+func (h *personHelper) Where(whereSQLOrMap interface{}, args ...interface{}) (People, error) {
+	var records People
 	err := h.DB.Select("*").
 		From("person").
 		Where(whereSQLOrMap, args...).
@@ -151,7 +160,6 @@ func (h *personHelper) Where(whereSQLOrMap interface{}, args ...interface{}) (Pe
 
 func (h *personHelper) One(whereSQLOrMap interface{}, args ...interface{}) (*Person, error) {
 	var record Person
-
 	err := h.DB.Select("*").
 		From("person").
 		Where(whereSQLOrMap, args...).
@@ -190,7 +198,7 @@ func (h *personHelper) PagedBy(pageNum int, itemsPerPage int, orderByFieldName s
 		return nil, errors.New("direction isn't valid")
 	}
 
-	var records Persons
+	var records People
 	err := h.DB.Select("*").
 		From("person").
 		OrderBy(orderByFieldName + " " + direction).
@@ -207,61 +215,11 @@ func (h *personHelper) PagedBy(pageNum int, itemsPerPage int, orderByFieldName s
 	return NewPagedData(records, orderByFieldName, direction, itemsPerPage, pageNum, count), nil
 }
 
-func (h *personHelper) Load(id int) (*Person, error) {
-	record := &Person{}
-	err := h.DB.
-		Select("*").
-		From("person").
-		Where("person_id = $1", id).
-		QueryStruct(record)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return record, nil
-}
-
 func (h *personHelper) Save(record *Person) error {
-	// date created always should be set, if its null just set it to now.
-	if record.DateCreated.IsZero() {
-		record.DateCreated = time.Now()
-	}
-
-	// was just modified
-	record.DateModified = time.Now()
-
-	// check validation
-	_, err := h.Validate(record)
-	if err != nil {
-		return err
-	}
-
-	err = h.save(record)
-	if err != nil {
-		return err
-	}
-
-	return err
+	return h.save(record)
 }
 
-func (h *personHelper) SaveMany(records Persons) error {
-	for _, record := range records {
-		// date created always should be set, if its null just set it to now.
-		if record.DateCreated.IsZero() {
-			record.DateCreated = time.Now()
-		}
-
-		// was just modified
-		record.DateModified = time.Now()
-
-		// check validation
-		_, err := h.Validate(record)
-		if err != nil {
-			return err
-		}
-	}
-
+func (h *personHelper) SaveMany(records People) error {
 	for _, record := range records {
 		// everything is validated so now re loop and do the actual saving... this should probably be a tx that can just rollback
 		err := h.save(record)
@@ -273,29 +231,36 @@ func (h *personHelper) SaveMany(records Persons) error {
 	return nil
 }
 
-func (h *personHelper) save(record *Person) error {
-	err := h.DB.
-		Upsert("person").
-		Columns("name", "email", "password", "phone", "role", "picture", "date_created", "date_modified").
-		Values(record.Name, record.Email, record.Password, record.Phone, record.Role, record.Picture, record.DateCreated, record.DateModified).
-		Where("person_id=$1", record.PersonID).
-		Returning("person_id").
-		QueryStruct(record)
-
+func (h *personHelper) save(record *Person) (err error) {
+	err = h.beforeSave(record)
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-// Validate a record
-func (h *personHelper) Validate(record *Person) (bool, error) {
-	validationErrors := h.Validator.Struct(record)
-	if validationErrors != nil {
-		return false, validationErrors
+	cols := []string{"name", "email", "password", "phone", "role", "picture", "date_created", "date_modified", "ulid"}
+	vals := []interface{}{record.Name, record.Email, record.Password, record.Phone, record.Role, record.Picture, record.DateCreated, record.DateModified, record.ULID}
+	if record.PersonID > 0 {
+		// UPDATE
+		b := h.DB.Update("person")
+		for i := range cols {
+			b.Set(cols[i], vals[i])
+		}
+		b.Where("person_id = $1", record.PersonID)
+		b.Returning("person_id")
+		err = b.QueryStruct(record)
+	} else {
+		// INSERT
+		err = h.DB.
+			InsertInto("person").
+			Columns(cols...).
+			Values(vals...).
+			Returning("person_id").
+			QueryStruct(record)
 	}
-	return true, nil
+	if err != nil {
+		return err
+	}
+	err = h.afterSave(record)
+	return err
 }
 
 func (h *personHelper) Delete(recordID int) (bool, error) {
@@ -309,4 +274,18 @@ func (h *personHelper) Delete(recordID int) (bool, error) {
 	}
 
 	return (result.RowsAffected > 0), nil
+}
+
+func (h *personHelper) validate(record *Person) (err error) {
+	validationErrors := h.validator.Struct(record)
+	if validationErrors != nil {
+		errMessage := ""
+		for _, err := range err.(validator.ValidationErrors) {
+			errMessage += err.Kind().String() + " validation Error on field " + err.Field()
+		}
+		if errMessage != "" {
+			err = errors.New(errMessage)
+		}
+	}
+	return err
 }

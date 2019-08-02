@@ -3,7 +3,7 @@
     <div class="level-left">
       <div class="level-item">
         <h3 class="subtitle is-5">
-          <strong>{{ getTitle(current) }} <span v-if="subtitle"> - {{subtitle}}</span></strong>
+          <strong>{{ getTitle(current) }} <span v-if="subtitle"> - {{ subtitle }}</span></strong>
         </h3>
       </div>
     </div>
@@ -35,6 +35,10 @@ export default {
       title: this.actualTitle
     }
   },
+  data () {
+    return {
+    }
+  },
   computed: {
     ...mapGetters({
       current: 'app/current',
@@ -42,12 +46,14 @@ export default {
       subtitle: 'app/subtitle'
     }),
     actualTitle () {
-      var title = typeof (this.title) === 'function' ? this.title(this) : this.title
+      let title = typeof (this.title) === 'function' ? this.title(this) : this.title
       if (title) {
         return title + ' - '
       }
       return ''
     }
+  },
+  watch: {
   },
   methods: {
     getTitle (item) {
@@ -56,31 +62,6 @@ export default {
       }
       return typeof (item.title) === 'function' ? item.title(this) : item.title
     }
-  },
-  watch: {
-  },
-  data () {
-    return {
-    }
-  },
-
-  // LIFECYCLE METHODS
-  // ______________________________________
-  beforeCreate () {
-  },
-  created () {
-  },
-  beforeMount () {
-  },
-  mounted () {
-  },
-  beforeUpdate () {
-  },
-  updated () {
-  },
-  beforeDestroy () {
-  },
-  destroyed () {
   }
 }
 </script>

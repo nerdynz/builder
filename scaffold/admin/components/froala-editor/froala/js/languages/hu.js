@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -64,7 +64,6 @@ $.FE.LANGUAGE['hu'] = {
     "Colors": "Sz\u00ednek",
     "Background": "H\u00e1tt\u00e9r",
     "Text": "Sz\u00f6veg",
-    "HEX Color": "Hex színű",
 
     // Paragraphs
     "Paragraph Format": "Form\u00e1tumok",
@@ -121,21 +120,15 @@ $.FE.LANGUAGE['hu'] = {
     "Display": "Kijelz\u0151",
     "Inline": "Sorban",
     "Break Text": "Sz\u00f6veg t\u00f6r\u00e9se",
-    "Alternative Text": "Alternat\u00edv sz\u00f6veg",
+    "Alternate Text": "Alternat\u00edv sz\u00f6veg",
     "Change Size": "M\u00e9ret m\u00f3dos\u00edt\u00e1sa",
     "Width": "Sz\u00e9less\u00e9g",
     "Height": "Magass\u00e1g",
     "Something went wrong. Please try again.": "Valami elromlott. K\u00e9rlek pr\u00f3b\u00e1ld \u00fajra.",
-    "Image Caption": "Képaláírás",
-    "Advanced Edit": "Fejlett szerkesztés",
 
     // Video
     "Insert Video": "Vide\u00f3 beilleszt\u00e9se",
     "Embedded Code": "K\u00f3d bem\u00e1sol\u00e1sa",
-    "Paste in a video URL": "Illessze be a videó URL-címét",
-    "Drop video": "Csepp videót",
-    "Your browser does not support HTML5 video.": "A böngészője nem támogatja a html5 videót.",
-    "Upload Video": "Videó feltöltése",
 
     // Tables
     "Insert Table": "T\u00e1bl\u00e1zat beilleszt\u00e9se",
@@ -260,59 +253,8 @@ $.FE.LANGUAGE['hu'] = {
     "Decrease": "Cs\u00f6kkent\u00e9s",
 
     // Quick Insert
-    "Quick Insert": "Beilleszt\u00e9s",
-
-    // Spcial Characters
-    "Special Characters": "Speciális karakterek",
-    "Latin": "Latin",
-    "Greek": "Görög",
-    "Cyrillic": "Cirill",
-    "Punctuation": "Központozás",
-    "Currency": "Valuta",
-    "Arrows": "Nyilak",
-    "Math": "Matematikai",
-    "Misc": "Misc",
-
-    // Print.
-    "Print": "Nyomtatás",
-
-    // Spell Checker.
-    "Spell Checker": "Helyesírás-ellenőrző",
-
-    // Help
-    "Help": "Segítség",
-    "Shortcuts": "Hivatkozások",
-    "Inline Editor": "Inline szerkesztő",
-    "Show the editor": "Mutassa meg a szerkesztőt",
-    "Common actions": "Közös cselekvések",
-    "Copy": "Másolat",
-    "Cut": "Vágott",
-    "Paste": "Paszta",
-    "Basic Formatting": "Alap formázás",
-    "Increase quote level": "Növeli az idézet szintjét",
-    "Decrease quote level": "Csökkenti az árazási szintet",
-    "Image / Video": "Kép / videó",
-    "Resize larger": "Nagyobb átméretezés",
-    "Resize smaller": "Kisebb méretűek",
-    "Table": "Asztal",
-    "Select table cell": "Válasszon táblázatcellát",
-    "Extend selection one cell": "Kiterjesztheti a kiválasztást egy cellára",
-    "Extend selection one row": "Szűkítse ki az egy sort",
-    "Navigation": "Navigáció",
-    "Focus popup / toolbar": "Fókusz felugró ablak / eszköztár",
-    "Return focus to previous position": "Visszaáll az előző pozícióra",
-
-    // Embed.ly
-    "Embed URL": "Beágyazott url",
-    "Paste in a URL to embed": "Beilleszteni egy URL-t a beágyazáshoz",
-
-    // Word Paste.
-    "The pasted content is coming from a Microsoft Word document. Do you want to keep the format or clean it up?": "A beillesztett tartalom egy microsoft szó dokumentumból származik. szeretné megtartani a formátumot vagy tisztítani?",
-    "Keep": "Tart",
-    "Clean": "Tiszta",
-    "Word Paste Detected": "Szópaszta észlelhető"
+    "Quick Insert": "Beilleszt\u00e9s"
   },
   direction: "ltr"
 };
-
 }));

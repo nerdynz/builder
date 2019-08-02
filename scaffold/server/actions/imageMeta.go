@@ -3,8 +3,8 @@ package actions
 import (
 	"net/http"
 
+	"github.com/nerdynz/builder/scaffold/server/models"
 	flow "github.com/nerdynz/flow"
-	"repo.nerdy.co.nz/displayworks/displayworks-signs/server/models"
 )
 
 func NewImageMeta(ctx *flow.Context) {

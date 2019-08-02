@@ -26,6 +26,12 @@ function byField (array, fieldName, value) {
   return array.find(find)
 }
 
+function changeSortByUUID (records, fromUUID, toUUID) {
+  let from = indexByUUID(records, fromUUID)
+  let to = indexByUUID(records, toUUID)
+  return changeSort(records, from, to)
+}
+
 function changeSort (records, from, to) {
   records = [
     ...records
@@ -37,7 +43,7 @@ function changeSort (records, from, to) {
   return newRecords
 }
 
-export { byUUID, indexByUUID, indexByField, byField, changeSort }
+export { changeSortByUUID, byUUID, indexByUUID, indexByField, byField, changeSort }
 
 function arrayMove (arr, from, to) {
   if (to >= arr.length) {

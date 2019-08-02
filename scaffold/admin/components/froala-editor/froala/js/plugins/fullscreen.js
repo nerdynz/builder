@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -46,22 +46,17 @@
     /**
      * Turn fullscreen on.
      */
+    var $placeholder;
     var height;
     var max_height;
     var z_index;
 
     function _on () {
-      if (editor.helpers.isIOS() && editor.core.hasFocus()) {
-        editor.$el.blur();
-
-        setTimeout(toggle, 250);
-
-        return false;
-      }
-
       old_scroll = editor.helpers.scrollTop();
       editor.$box.toggleClass('fr-fullscreen');
       $('body:first').toggleClass('fr-fullscreen');
+      $placeholder = $('<div style="display: none;"></div>');
+      editor.$box.after($placeholder);
 
       if (editor.helpers.isMobile()) {
         editor.$tb.data('parent', editor.$tb.parent());
@@ -76,10 +71,8 @@
       max_height = editor.opts.heightMax;
       z_index = editor.opts.zIndex;
 
-      editor.position.refresh()
-
       editor.opts.height = editor.o_win.innerHeight - (editor.opts.toolbarInline ? 0 : editor.$tb.outerHeight());
-      editor.opts.zIndex = 2147483641;
+      editor.opts.zIndex = 9990;
       editor.opts.heightMax = null;
       editor.size.refresh();
 
@@ -91,17 +84,12 @@
         $parent_node
           .data('z-index', $parent_node.css('z-index'))
           .data('overflow', $parent_node.css('overflow'))
-          .css('z-index', '2147483640')
+          .css('z-index', '9990')
           .css('overflow', 'visible');
         $parent_node = $parent_node.parent();
       }
 
-      if (editor.opts.toolbarContainer) {
-        editor.$box.prepend(editor.$tb);
-      }
-
       editor.events.trigger('charCounter.update');
-      editor.events.trigger('codeView.update');
       editor.$win.trigger('scroll');
     }
 
@@ -109,14 +97,6 @@
      * Turn fullscreen off.
      */
     function _off () {
-      if (editor.helpers.isIOS() && editor.core.hasFocus()) {
-        editor.$el.blur();
-
-        setTimeout(toggle, 250);
-
-        return false;
-      }
-
       editor.$box.toggleClass('fr-fullscreen');
       $('body:first').toggleClass('fr-fullscreen');
 
@@ -180,12 +160,7 @@
         $parent_node = $parent_node.parent();
       }
 
-      if (editor.opts.toolbarContainer) {
-        $(editor.opts.toolbarContainer).append(editor.$tb);
-      }
-
-      $(editor.o_win).trigger('scroll');
-      editor.events.trigger('codeView.update');
+      editor.$win.trigger('scroll');
     }
 
     /**
@@ -221,12 +196,6 @@
 
       editor.events.on('toolbar.hide', function () {
         if (isActive() && editor.helpers.isMobile()) return false;
-      })
-
-      editor.events.on('position.refresh', function () {
-        if (editor.helpers.isIOS()) {
-          return !isActive();
-        }
       })
 
       editor.events.on('destroy', function () {

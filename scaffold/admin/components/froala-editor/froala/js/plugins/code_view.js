@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -34,7 +34,7 @@
   
 
   $.extend($.FE.DEFAULTS, {
-    codeMirror: window.CodeMirror,
+    codeMirror: true,
     codeMirrorOptions: {
       lineNumbers: true,
       tabMode: 'indent',
@@ -75,21 +75,6 @@
       }
     }
 
-    function refresh () {
-      if (isActive()) {
-        if (code_mirror) {
-          code_mirror.setSize(null, editor.opts.height ? editor.opts.height : 'auto');
-        }
-
-        if (editor.opts.heightMin || editor.opts.height) {
-          editor.$box.find('.CodeMirror-scroll, .CodeMirror-gutters').css('min-height', editor.opts.heightMin || editor.opts.height);
-        }
-        else {
-          editor.$box.find('.CodeMirror-scroll, .CodeMirror-gutters').css('min-height', '');
-        }
-      }
-    }
-
     /**
      * Get back to edit mode.
      */
@@ -106,25 +91,10 @@
       editor.$tb.find(' > .fr-command').not($btn).removeClass('fr-disabled').attr('aria-disabled', false);
       $btn.removeClass('fr-active').attr('aria-pressed', false);
 
-      editor.selection.setAtStart(editor.el);
-      editor.selection.restore();
+      editor.events.focus(true);
       editor.placeholder.refresh();
 
       editor.undo.saveStep();
-    }
-
-    var _can_focus = false;
-
-    function _blur () {
-      if (isActive()) {
-        editor.events.trigger('blur')
-      }
-    }
-
-    function _focus () {
-      if (isActive() && _can_focus) {
-        editor.events.trigger('focus')
-      }
     }
 
     /**
@@ -135,11 +105,8 @@
         _initArea();
 
         // Enable code mirror.
-        if (!code_mirror && editor.opts.codeMirror) {
-          code_mirror = editor.opts.codeMirror.fromTextArea($html_area.get(0), editor.opts.codeMirrorOptions);
-
-          code_mirror.on('blur', _blur);
-          code_mirror.on('focus', _focus);
+        if (!code_mirror && editor.opts.codeMirror && typeof CodeMirror != 'undefined') {
+          code_mirror = CodeMirror.fromTextArea($html_area.get(0), editor.opts.codeMirrorOptions);
         }
         else {
           editor.events.$on($html_area, 'keydown keyup change input', function () {
@@ -159,9 +126,6 @@
               this.removeAttribute('rows')
             }
           });
-
-          editor.events.$on($html_area, 'blur', _blur);
-          editor.events.$on($html_area, 'focus', _focus);
         }
       }
 
@@ -186,13 +150,7 @@
 
       editor.$box.toggleClass('fr-code-view', true);
 
-      var was_focused = false;
-
-      if (editor.core.hasFocus()) {
-        was_focused = true;
-        editor.events.disableBlur();
-        editor.$el.blur();
-      }
+      if (editor.core.hasFocus()) editor.$el.blur();
 
       html = html.replace(/<span class="fr-tmp fr-sm">F<\/span>/, 'FROALA-SM');
       html = html.replace(/<span class="fr-tmp fr-em">F<\/span>/, 'FROALA-EM');
@@ -228,9 +186,7 @@
 
         if (editor.opts.heightMin) editor.$box.find('.CodeMirror-scroll').css('min-height', editor.opts.heightMin);
         code_mirror.setValue(html);
-        _can_focus = !was_focused;
         code_mirror.focus();
-        _can_focus = true;
         code_mirror.setSelection({ line: s_line, ch: s_index }, { line: e_line, ch: e_index })
         code_mirror.refresh();
         code_mirror.clearHistory();
@@ -256,9 +212,7 @@
         $html_area.val(html.replace(/FROALA-SM/g, '').replace(/FROALA-EM/g, '')).trigger('change');
 
         var scroll_top = $(editor.o_doc).scrollTop();
-        _can_focus = !was_focused;
         $html_area.focus();
-        _can_focus = true;
         $html_area.get(0).setSelectionRange(s_index, e_index);
         $(editor.o_doc).scrollTop(scroll_top);
       }
@@ -343,8 +297,6 @@
       editor.events.on('html.set', function () {
         if (isActive()) toggle(true);
       });
-
-      editor.events.on('codeView.update', refresh);
 
       editor.events.on('form.submit', function () {
         if (isActive()) {

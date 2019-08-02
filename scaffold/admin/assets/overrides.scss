@@ -28,7 +28,7 @@ html, body, #__nuxt, .main-body, .u-fh, #__layout {
   position: absolute;
 }
 
-@import "~bulma";
+@import "~bulma/bulma";
 @import "~buefy/src/scss/buefy";
 
 .content p:not(:last-child), .content dl:not(:last-child), .content ol:not(:last-child), .content ul:not(:last-child), .content blockquote:not(:last-child), .content pre:not(:last-child), .content table:not(:last-child) {

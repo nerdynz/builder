@@ -8,12 +8,7 @@ import (
 )
 
 func main() {
-	err := dotenv.Load() // load from .env file where scaffold is run
-	if err != nil {
-		panic(err)
-	}
 	render := getRenderer()
-	db := getDBConnection()
 	app := cli.NewApp()
 	app.Name = "builder"
 	app.Usage = "code generation"
@@ -26,10 +21,24 @@ func main() {
 	// app.Flags = flags
 	app.Commands = []cli.Command{
 		{
+			Name:    "scaffold",
+			Aliases: []string{"s"},
+			Usage:   "Create a new project [projectname] [project path]",
+			Action: func(c *cli.Context) error {
+				return createProject(c, render)
+			},
+			Flags: flags,
+		},
+		{
 			Name:    "table",
 			Aliases: []string{"t"},
 			Usage:   "Create a new table [tablename] [fieldname:fieldtype]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return createTable(c, render, db)
 			},
 			Flags: flags,
@@ -39,6 +48,11 @@ func main() {
 			Aliases: []string{"f"},
 			Usage:   "Add fields to an existing table [tablename] [fieldname:fieldtype]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return addFields(c, render, db)
 			},
 			Flags: flags,
@@ -48,6 +62,11 @@ func main() {
 			Aliases: []string{"m"},
 			Usage:   "create a model from a table [tablename]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return createModel(c, render, db)
 			},
 			Flags: flags,
@@ -57,6 +76,11 @@ func main() {
 			Aliases: []string{"r"},
 			Usage:   "create a restful interface from a table [tablename]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return createRest(c, render, db)
 			},
 			Flags: flags,
@@ -66,6 +90,11 @@ func main() {
 			Aliases: []string{"e"},
 			Usage:   "create a edit page from a table [tablename]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return createEdit(c, render, db)
 			},
 			Flags: flags,
@@ -75,6 +104,11 @@ func main() {
 			Aliases: []string{"l"},
 			Usage:   "create a list page from a table [tablename]",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return createList(c, render, db)
 			},
 			Flags: flags,
@@ -84,6 +118,11 @@ func main() {
 			Aliases: []string{"mi"},
 			Usage:   "perform schema migration",
 			Action: func(c *cli.Context) error {
+				err := dotenv.Load() // load from .env file where scaffold is run
+				if err != nil {
+					return err
+				}
+				db := getDBConnection()
 				return doMigration(c, render, db)
 			},
 			Flags: flags,

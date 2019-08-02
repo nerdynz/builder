@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -64,7 +64,6 @@ $.FE.LANGUAGE['me'] = {
     "Colors": "Boje",
     "Background": "Pozadine",
     "Text": "Teksta",
-    "HEX Color": "HEX boje",
 
     // Paragraphs
     "Paragraph Format": "Paragraf formatu",
@@ -121,21 +120,15 @@ $.FE.LANGUAGE['me'] = {
     "Display": "Prikaz",
     "Inline": "Inline",
     "Break Text": "Break tekst",
-    "Alternative Text": "Alternativna tekst",
+    "Alternate Text": "Alternativna tekst",
     "Change Size": "Promijeni veli\u010dinu",
     "Width": "\u0161irina",
     "Height": "Visina",
     "Something went wrong. Please try again.": "Ne\u0161to je po\u0161lo po zlu. Molimo vas da poku\u0161ate ponovo.",
-    "Image Caption": "Slika natpisa",
-    "Advanced Edit": "Napredno uređivanje",
 
     // Video
     "Insert Video": "Umetni video",
     "Embedded Code": "Embedded kod",
-    "Paste in a video URL": "Prilepite v URL video posnetka",
-    "Drop video": "Izbaci video",
-    "Your browser does not support HTML5 video.": "Váš prehliadač nepodporuje video HTML5.",
-    "Upload Video": "Upload video",
 
     // Tables
     "Insert Table": "Umetni tabelu",
@@ -260,57 +253,7 @@ $.FE.LANGUAGE['me'] = {
     "Decrease": "Smanjenje",
 
     // Quick Insert
-    "Quick Insert": "Brzo umetni",
-
-    // Spcial Characters
-    "Special Characters": "Specijalni znakovi",
-    "Latin": "Latino",
-    "Greek": "Grk",
-    "Cyrillic": "Ćirilica",
-    "Punctuation": "Interpunkcije",
-    "Currency": "Valuta",
-    "Arrows": "Strelice",
-    "Math": "Matematika",
-    "Misc": "Misc",
-
-    // Print.
-    "Print": "Odštampaj",
-
-    // Spell Checker.
-    "Spell Checker": "Kontrolor pravopisa",
-
-    // Help
-    "Help": "Pomoć",
-    "Shortcuts": "Prečice",
-    "Inline Editor": "Pri upisivanju Editor",
-    "Show the editor": "Prikaži urednik",
-    "Common actions": "Zajedničke akcije",
-    "Copy": "Kopija",
-    "Cut": "Rez",
-    "Paste": "Nalepi",
-    "Basic Formatting": "Osnovno oblikovanje",
-    "Increase quote level": "Povećati ponudu za nivo",
-    "Decrease quote level": "Smanjenje ponude nivo",
-    "Image / Video": "Slika / Video",
-    "Resize larger": "Veće veličine",
-    "Resize smaller": "Promena veličine manji",
-    "Table": "Sto",
-    "Select table cell": "Select ćelije",
-    "Extend selection one cell": "Proširite selekciju jednu ćeliju",
-    "Extend selection one row": "Proširite selekciju jedan red",
-    "Navigation": "Navigacija",
-    "Focus popup / toolbar": "Fokus Iskačući meni / traka sa alatkama",
-    "Return focus to previous position": "Vratiti fokus na prethodnu poziciju",
-
-    // Embed.ly
-    "Embed URL": "Ugradite URL",
-    "Paste in a URL to embed": "Nalepite URL adresu da biste ugradili",
-
-    // Word Paste.
-    "The pasted content is coming from a Microsoft Word document. Do you want to keep the format or clean it up?": "Nalepljeni sadržaj dolazi iz Microsoft Word dokument. Da li želite zadržati u formatu ili počistiti?",
-    "Keep": "Nastavi",
-    "Clean": "Oиisti",
-    "Word Paste Detected": "Word Nalepi otkriven"
+    "Quick Insert": "Brzo umetni"
   },
   direction: "ltr"
 };

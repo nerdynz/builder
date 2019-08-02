@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -78,7 +78,7 @@
     function _matches (array1, array2) {
       for (var i = 0; i < array1.length; i++) {
         for (var j = 0; j < array2.length; j++) {
-          if (array1[i].toLowerCase() == array2[j].toLowerCase()) {
+          if (array1[i] == array2[j]) {
             return [i, j];
           }
         }

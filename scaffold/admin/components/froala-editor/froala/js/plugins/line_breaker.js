@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -35,7 +35,7 @@
 
   // Extend defaults.
   $.extend($.FE.DEFAULTS, {
-    lineBreakerTags: ['table', 'hr', 'form', 'dl', 'span.fr-video', '.fr-embedly'],
+    lineBreakerTags: ['table', 'hr', 'form', 'dl', 'span.fr-video'],
     lineBreakerOffset: 15,
     lineBreakerHorizontalOffset: 10
   });
@@ -52,7 +52,7 @@
      * If tag1 is null then tag2 is the first tag in the editor.
      * If tag2 is null then tag1 is the last tag in the editor.
      */
-    function _show($tag1, $tag2) {
+    function _show ($tag1, $tag2) {
 
       // Line breaker's possition and width.
       var breakerTop;
@@ -66,35 +66,31 @@
 
       // Mouse is over the first tag in the editor. Show line breaker above tag2.
       if ($tag1 == null) {
+
         // Compute line breaker's possition and width.
         parent_tag = $tag2.parent();
         parent_top = parent_tag.offset().top;
         tag_top = $tag2.offset().top;
-
         breakerTop = tag_top - Math.min((tag_top - parent_top) / 2, editor.opts.lineBreakerOffset);
         breakerWidth = parent_tag.outerWidth();
         breakerLeft = parent_tag.offset().left;
-      }
 
       // Mouse is over the last tag in the editor. Show line breaker below tag1.
+      }
       else if ($tag2 == null) {
+
         // Compute line breaker's possition and width.
         parent_tag = $tag1.parent();
         parent_bottom = parent_tag.offset().top + parent_tag.outerHeight();
         tag_bottom = $tag1.offset().top + $tag1.outerHeight();
-
-        if (parent_bottom < tag_bottom) {
-          parent_tag = $(parent_tag).parent();
-          parent_bottom = parent_tag.offset().top + parent_tag.outerHeight();
-        }
-
-        breakerTop = tag_bottom + Math.min(Math.abs(parent_bottom - tag_bottom) / 2, editor.opts.lineBreakerOffset);
+        breakerTop = tag_bottom + Math.min((parent_bottom - tag_bottom) / 2, editor.opts.lineBreakerOffset);
         breakerWidth = parent_tag.outerWidth();
         breakerLeft = parent_tag.offset().left;
-      }
 
       // Mouse is between the 2 tags.
+      }
       else {
+
         // Compute line breaker's possition and width.
         parent_tag = $tag1.parent();
         var tag1_bottom = $tag1.offset().top + $tag1.height();
@@ -102,6 +98,7 @@
 
         // Tags may be on the same line, so there is no need for line breaker.
         if (tag1_bottom > tag2_top) {
+
           return false;
         }
 
@@ -132,7 +129,7 @@
      * Check tag siblings.
      * The line breaker hould appear if there is no sibling or if the sibling is also in the line breaker tags list.
      */
-    function _checkTagSiblings($tag, mouseY) {
+    function _checkTagSiblings ($tag, mouseY) {
 
       // Tag's Y top and bottom coordinate.
       var tag_top = $tag.offset().top;
@@ -142,7 +139,7 @@
 
       // Only if the mouse is close enough to the bottom or top edges.
       if (Math.abs(tag_bottom - mouseY) <= editor.opts.lineBreakerOffset ||
-        Math.abs(mouseY - tag_top) <= editor.opts.lineBreakerOffset) {
+          Math.abs(mouseY - tag_top) <= editor.opts.lineBreakerOffset) {
 
         // Mouse is near bottom check for next sibling.
         if (Math.abs(tag_bottom - mouseY) < Math.abs(mouseY - tag_top)) {
@@ -166,7 +163,7 @@
               return true;
             }
 
-            // No next sibling.
+          // No next sibling.
           }
           else {
 
@@ -189,7 +186,7 @@
 
             return true;
 
-            // Tag has prev sibling.
+          // Tag has prev sibling.
           }
           else {
             $sibling = _checkTag(tag.previousSibling);
@@ -213,7 +210,7 @@
      * Check if tag is in the line breaker list and in the editor as well.
      * Returns the tag from the line breaker list or false if the tag is not in the list.
      */
-    function _checkTag(tag) {
+    function _checkTag (tag) {
       if (tag) {
         var $tag = $(tag);
 
@@ -239,19 +236,6 @@
       return null;
     }
 
-    function _isInWp(tag) {
-      if (typeof tag.inFroalaWrapper != 'undefined') return tag.inFroalaWrapper;
-      var o_tag = tag;
-
-      while (tag.parentNode && tag.parentNode !== editor.$wp.get(0)) {
-        tag = tag.parentNode;
-      }
-
-      o_tag.inFroalaWrapper = (tag.parentNode == editor.$wp.get(0));
-
-      return o_tag.inFroalaWrapper;
-    }
-
     /*
      * Look for tag at the specified coordinates.
      */
@@ -259,7 +243,7 @@
       var tag = editor.doc.elementFromPoint(x, y);
 
       // We found a tag.
-      if (tag && !$(tag).closest('.fr-line-breaker').length && !editor.node.isElement(tag) && tag != editor.$wp.get(0) && _isInWp(tag)) {
+      if (tag && !$(tag).closest('.fr-line-breaker').length && !editor.node.isElement(tag) && tag != editor.$wp.get(0) && $(tag).closest(editor.$wp).length) {
         return tag;
       }
 
@@ -270,7 +254,7 @@
     /*
      * Look for tags above and bellow the specificed point.
      */
-    function _searchTagVertically(x, y, step) {
+    function _searchTagVertically (x, y, step) {
       var i = step;
       var tag = null;
 
@@ -295,14 +279,11 @@
     /*
      * Look for tag left and right, up and down for each point.
      */
-    function _searchTagHorizontally(x, y, direction) {
+    function _searchTagHorizontally (x, y, direction) {
       var tag = null;
 
-      // Do not check left / right too much.
-      var limit = 100;
-
       // Look left / right until a tag is found or the editor margins are reached.
-      while (!tag && x > editor.$box.offset().left && x < editor.$box.offset().left + editor.$box.outerWidth() && limit > 0) {
+      while (!tag && x > editor.$box.offset().left && x < editor.$box.offset().left + editor.$box.outerWidth()) {
         tag = _tagAt(x, y);
 
         // There's not tag here, look up and down.
@@ -315,8 +296,6 @@
         // Move left or right.
         if (direction == 'left') x -= editor.opts.lineBreakerHorizontalOffset;
         else x += editor.opts.lineBreakerHorizontalOffset;
-
-        limit -= editor.opts.lineBreakerHorizontalOffset;
       }
 
       return tag;
@@ -325,7 +304,7 @@
     /*
      * Get the tag under the mouse cursor.
      */
-    function _tagUnder(e) {
+    function _tagUnder (e) {
       mouseMoveTimer = null;
 
       // The tag for which the line breaker should be showed.
@@ -336,7 +315,7 @@
       var tag_under = editor.doc.elementFromPoint(e.pageX - editor.win.pageXOffset, e.pageY - editor.win.pageYOffset);
 
       // Tag is the editor element. Look for closest tag above and bellow, left and right.
-      if (tag_under && (tag_under.tagName == 'HTML' || tag_under.tagName == 'BODY' || editor.node.isElement(tag_under) || (tag_under.getAttribute('class') || '').indexOf('fr-line-breaker') >= 0)) {
+      if (tag_under && (tag_under.tagName == 'HTML' || tag_under.tagName == 'BODY' || editor.node.isElement(tag_under) || tag_under.classList.contains('.fr-line-breaker'))) {
 
         // Look 1px up and 1 down.
         tag = _searchTagVertically(e.pageX - editor.win.pageXOffset, e.pageY - editor.win.pageYOffset, 1);
@@ -351,9 +330,9 @@
           tag = _searchTagHorizontally(e.pageX - editor.win.pageXOffset + editor.opts.lineBreakerHorizontalOffset, e.pageY - editor.win.pageYOffset, 'right');
         }
 
-        $tag = _checkTag(tag);
+        $tag = _checkTag(tag)
 
-        // Tag is not the editor element.
+      // Tag is not the editor element.
       }
       else {
 
@@ -373,7 +352,7 @@
     /*
      * Set mouse timer to improve performance.
      */
-    function _mouseTimer(e) {
+    function _mouseTimer (e) {
       if ($line_breaker.hasClass('fr-visible') && !editor.core.sameInstance($line_breaker)) return false;
 
       if (editor.popups.areVisible() || editor.el.querySelector('.fr-selected-cell')) {
@@ -394,7 +373,7 @@
     /*
      * Hide line breaker and prevent timer from showing it again.
      */
-    function _hide() {
+    function _hide () {
       if (mouseMoveTimer) {
         clearTimeout(mouseMoveTimer);
       }
@@ -408,7 +387,7 @@
      * Notify that mouse is down and prevent line breaker from showing.
      * This may happen either for selection or for drag.
      */
-    function _mouseDown() {
+    function _mouseDown () {
       mouseDownFlag = true;
       _hide();
     }
@@ -416,17 +395,16 @@
     /*
      * Notify that mouse is no longer pressed.
      */
-    function _mouseUp() {
+    function _mouseUp () {
       mouseDownFlag = false;
     }
 
     /*
      * Add new line between the tags.
      */
-    function _doLineBreak(e) {
+    function _doLineBreak (e) {
+      if (!editor.core.sameInstance($line_breaker)) return true;
       e.preventDefault();
-
-      var instance = $line_breaker.data('instance') || editor;
 
       // Hide the line breaker.
       $line_breaker.removeClass('fr-visible').removeData('instance');
@@ -464,13 +442,13 @@
       }
 
       // Cursor is now at the beginning of the new line.
-      instance.selection.restore();
+      editor.selection.restore();
     }
 
     /*
      * Initialize the line breaker.
      */
-    function _initLineBreaker() {
+    function _initLineBreaker () {
 
       // Append line breaker HTML to editor wrapper.
       if (!editor.shared.$line_breaker) {
@@ -496,13 +474,16 @@
       }, true)
 
       // Add new line break.
-      editor.events.bindClick($line_breaker, 'a', _doLineBreak);
+      editor.events.$on($line_breaker, 'mousedown', 'a', function (e) {
+        e.stopPropagation();
+      }, true);
+      editor.events.$on($line_breaker, 'click', 'a', _doLineBreak, true);
     }
 
     /*
      * Tear up.
      */
-    function _init() {
+    function _init () {
       if (!editor.$wp) return false;
 
       _initLineBreaker();

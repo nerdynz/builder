@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	flow "github.com/nerdynz/flow"
-	"repo.nerdy.co.nz/thecollins/thecollins/server/models"
+	"github.com/nerdynz/builder/scaffold/server/models"
 )
 
 func loadPageExtras(ctx *flow.Context) {

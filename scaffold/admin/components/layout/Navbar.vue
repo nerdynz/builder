@@ -1,30 +1,20 @@
 <template>
-  <section class="hero is-bold app-navbar ">
-    <div class="hero-head">
-      <nav class="navbar is-flex-mobile">
-        <div class="navbar-start is-flex-mobile" style="flex-grow:0;padding: 1rem 0.5rem;">
-          <a class="navbar-item is-hidden-1230" @click="toggleSidebar(!sidebar.opened)">
-            <i class="fa fa-bars" aria-hidden="true"></i>
-          </a>
-          <div class="logo-wrap navbar-item">
-            <img class="logo" src="~public/images/logo.png" alt="">
-          </div>
+  <section class="app-navbar ">
+    <nav class="navbar is-flex-mobile">
+      <div class="navbar-start is-flex-mobile" style="flex-grow:0;padding: 1rem 0.5rem;">
+        <a class="navbar-item is-hidden-1230" @click="toggleSidebar(!sidebar.opened)">
+          <i class="fa fa-bars" aria-hidden="true"></i>
+        </a>
+      </div>
+      <div class="navbar-end is-flex-mobile">
+        <div class="navbar-item">
+          <picture-avatar :user="user"></picture-avatar>
         </div>
-        <div v-if="false" class="nav-center">
-          <span class="nav-item top-title">
-            {{title}}
-          </span>
+        <div class="navbar-item logout">
+          <router-link to="/logout" ><b-icon icon="sign-out" size="large"></b-icon></router-link>
         </div>
-        <div class="navbar-end is-flex-mobile">
-          <div class="navbar-item">
-            <picture-avatar :user="user"></picture-avatar>
-          </div>
-          <div class="navbar-item logout">
-            <router-link to="/logout" ><b-icon icon="sign-out" size="large"></b-icon></router-link>
-          </div>
-        </div>
-      </nav>
-    </div>
+      </div>
+    </nav>
   </section>
 </template>
 
@@ -58,7 +48,7 @@ export default {
 
 <style lang="scss">
 @import "~public/scss/_variables";
-@import '~bulma/utilities/_all';
+@import '~bulma/utilities/all';
 
 .app-navbar {
   position: fixed;
@@ -74,7 +64,7 @@ export default {
   .logo-wrap {
     padding: 0;
     img {
-      max-height:3.5rem;
+      max-width:300px;
     }
   }
 

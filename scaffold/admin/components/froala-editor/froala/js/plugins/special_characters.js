@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -570,12 +570,12 @@
       // Begin body.
       var body = '<div class="fr-special-characters-modal">';
 
-      for (var k = 0; k < editor.opts.specialCharactersSets.length; k++) {
-        var set = editor.opts.specialCharactersSets[k];
+      for (var k = 0; k < $.FE.DEFAULTS.specialCharactersSets.length; k++) {
+        var set = $.FE.DEFAULTS.specialCharactersSets[k];
         var list = set.list;
 
         // Add title.
-        var html_list = '<div class="fr-special-characters-list"><p class="fr-special-characters-title">' + editor.language.translate(set.title) + '</p>';
+        var html_list = '<div class="fr-special-characters-list"><p class="fr-special-characters-title">' + set.title + '</p>';
 
         for (var i = 0; i < list.length; i++) {
           var item = list[i];
@@ -701,7 +701,7 @@
      */
     function show () {
       if (!$modal) {
-        var head = '<h4>' + editor.language.translate('Special Characters') + '</h4>';
+        var head = '<h4>Special Characters</h4>';
         var body = _buildBody();
         var modalHash = editor.modals.create(modal_id, head, body);
         $modal = modalHash.$modal;
@@ -775,7 +775,7 @@
       this.specialCharacters.show();
     },
     plugin: 'specialCharacters',
-    showOnMobile: true
+    showOnMobile: false
   });
 
 }));

@@ -18,8 +18,12 @@ import (
 )
 
 func getRenderer() *render.Render {
+	tmplDir := os.Getenv("templates_dir")
+	if tmplDir == "" {
+		tmplDir = "./blueprints"
+	}
 	r := render.New(render.Options{
-		Directory: "./blueprints",
+		Directory: tmplDir,
 		Funcs: []template.FuncMap{
 			template.FuncMap{
 				"jsesc": toJS,

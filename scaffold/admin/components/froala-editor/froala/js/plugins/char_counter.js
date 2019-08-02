@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -47,7 +47,7 @@
      * Get the char number.
      */
     function count () {
-      return (editor.el.textContent || '').replace(/\u200B/g, '').length;
+      return editor.el.textContent.length;
     }
 
     /**
@@ -64,7 +64,7 @@
       // Stop if the key will produce a new char.
       var keyCode = e.which;
 
-      if ((!editor.keys.ctrlKey(e) && editor.keys.isCharacter(keyCode)) || (keyCode === $.FE.KEYCODE.IME)) {
+      if (!editor.keys.ctrlKey(e) && editor.keys.isCharacter(keyCode)) {
         e.preventDefault();
         e.stopPropagation();
         editor.events.trigger('charCounter.exceeded');

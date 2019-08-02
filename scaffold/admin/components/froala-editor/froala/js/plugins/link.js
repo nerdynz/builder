@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -51,8 +51,6 @@
     linkConvertEmailAddress: true,
     linkAlwaysBlank: false,
     linkAlwaysNoFollow: false,
-    linkNoOpener: true,
-    linkNoReferrer: true,
     linkList: [
       {
         text: 'Froala',
@@ -79,12 +77,7 @@
       if (!$current_image && editor.$wp) {
         var c_el = editor.selection.ranges(0).commonAncestorContainer;
 
-        try {
-          if (c_el && ((c_el.contains && c_el.contains(editor.el)) || !editor.el.contains(c_el) || editor.el == c_el)) c_el = null;
-        }
-        catch (ex) {
-          c_el = null;
-        }
+        if (c_el && (c_el.contains && c_el.contains(editor.el) || !editor.el.contains(c_el) || editor.el == c_el)) c_el = null;
 
         if (c_el && c_el.tagName === 'A') return c_el;
         var s_el = editor.selection.element();
@@ -98,27 +91,11 @@
           e_el = $(e_el).parentsUntil(editor.$el, 'a:first').get(0);
         }
 
-        try {
-          if (e_el && ((e_el.contains && e_el.contains(editor.el)) || !editor.el.contains(e_el) || editor.el == e_el)) e_el = null;
-        }
-        catch (ex) {
-          e_el = null;
-        }
+        if (e_el && (e_el.contains && e_el.contains(editor.el) || !editor.el.contains(e_el) || editor.el == e_el)) e_el = null;
 
-        try {
-          if (s_el && ((s_el.contains && s_el.contains(editor.el)) || !editor.el.contains(s_el) || editor.el == s_el)) s_el = null;
-        }
-        catch (ex) {
-          s_el = null;
-        }
+        if (s_el && (s_el.contains && s_el.contains(editor.el) || !editor.el.contains(s_el) || editor.el == s_el)) s_el = null;
 
         if (e_el && e_el == s_el && e_el.tagName == 'A') {
-
-          // We do not clicking at the end / input of links because in IE the selection is changing shortly after mouseup.
-          // https://jsfiddle.net/jredzam3/
-          if ((editor.browser.msie || editor.helpers.isMobile()) && (editor.selection.info(s_el).atEnd || editor.selection.info(s_el).atStart)) {
-            return null;
-          }
 
           return s_el;
         }
@@ -281,7 +258,7 @@
       // Link buttons.
       var link_buttons = '';
 
-      if (editor.opts.linkEditButtons.length >= 1) {
+      if (editor.opts.linkEditButtons.length > 1) {
         if (editor.el.tagName == 'A' && editor.opts.linkEditButtons.indexOf('linkRemove') >= 0) {
           editor.opts.linkEditButtons.splice(editor.opts.linkEditButtons.indexOf('linkRemove'), 1);
         }
@@ -400,7 +377,7 @@
       var input_layer = '';
       var tab_idx = 0;
       input_layer = '<div class="fr-link-insert-layer fr-layer fr-active" id="fr-link-insert-layer-' + editor.id + '">';
-      input_layer += '<div class="fr-input-line"><input id="fr-link-insert-layer-url-' + editor.id + '" name="href" type="text" class="fr-link-attr" placeholder="' + editor.language.translate('URL') + '" tabIndex="' + (++tab_idx) + '"></div>';
+      input_layer += '<div class="fr-input-line"><input id="fr-link-insert-layer-url-' + editor.id + '" name="href" type="text" class="fr-link-attr" placeholder="URL" tabIndex="' + (++tab_idx) + '"></div>';
 
       if (editor.opts.linkText) {
         input_layer += '<div class="fr-input-line"><input id="fr-link-insert-layer-text-' + editor.id + '" name="text" type="text" class="fr-link-attr" placeholder="' + editor.language.translate('Text') + '" tabIndex="' + (++tab_idx) + '"></div>';
@@ -534,7 +511,7 @@
       var $popup = editor.popups.get('link.insert');
       var text_inputs = $popup.find('input.fr-link-attr[type="text"]');
       var check_inputs = $popup.find('input.fr-link-attr[type="checkbox"]');
-      var href = (text_inputs.filter('[name="href"]').val() || '').trim();
+      var href = text_inputs.filter('[name="href"]').val();
       var text = text_inputs.filter('[name="text"]').val();
       var attrs = {};
       var $input;
@@ -573,7 +550,6 @@
           var $marker = $(markers.pop());
           $marker.removeClass('fr-unprocessed');
 
-          // Get deepest parent.
           var deep_parent = editor.node.deepestParent($marker.get(0));
 
           if (deep_parent) {
@@ -593,17 +569,14 @@
             var marker_str = editor.node.openTagString($marker.get(0)) + $marker.html() +  editor.node.closeTagString($marker.get(0));
 
             $marker.replaceWith('<span id="fr-break"></span>');
-            var h = deep_parent.outerHTML;
-
+            var h = $(deep_parent).html();
             h = h.replace(/<span id="fr-break"><\/span>/g, close_str + marker_str + open_str);
 
-            deep_parent.outerHTML = h;
+            $(deep_parent).html(h);
           }
 
           markers = editor.$el.find('.fr-marker.fr-unprocessed').toArray();
         }
-
-        editor.html.cleanEmptyTags();
 
         editor.selection.restore();
       }
@@ -632,7 +605,9 @@
 
       // Convert email address.
       if (editor.opts.linkConvertEmailAddress) {
-        if (editor.helpers.isEmail(href) && !/^mailto:.*/i.test(href)) {
+        var regex = $.FE.MAIL_REGEX;
+
+        if (regex.test(href) && !/^mailto:.*/i.test(href)) {
           href = 'mailto:' + href;
         }
       }
@@ -641,11 +616,11 @@
       var local_path = /^([A-Za-z]:(\\){1,2}|[A-Za-z]:((\\){1,2}[^\\]+)+)(\\)?$/i;
 
       // Add autoprefix.
-      if (editor.opts.linkAutoPrefix !== '' && !new RegExp('^(' + $.FE.LinkProtocols.join('|') + '):.', 'i').test(href) && !/^data:image.*/i.test(href) && !/^(https?:|ftps?:|file:|)\/\//i.test(href) && !local_path.test(href)) {
+      if (editor.opts.linkAutoPrefix !== '' && !/^(mailto|tel|sms|notes|data):.*/i.test(href) && !/^data:image.*/i.test(href) && !/^(https?:|ftps?:|file:|)\/\//i.test(href) && !local_path.test(href)) {
 
         // Do prefix only if starting character is not absolute.
-        if (['/', '{', '[', '#', '(', '.'].indexOf((href || '')[0]) < 0) {
-          href = editor.opts.linkAutoPrefix + editor.helpers.sanitizeURL(href);
+        if (['/', '{', '[', '#', '('].indexOf((href || '')[0]) < 0) {
+          href = editor.opts.linkAutoPrefix + href;
         }
       }
 
@@ -659,15 +634,8 @@
 
       // https://github.com/froala/wysiwyg-editor/issues/1576.
       if (attrs.target == '_blank') {
-        if (editor.opts.linkNoOpener) {
-          if (!attrs.rel) attrs.rel = 'noopener';
-          else attrs.rel += ' noopener';
-        }
-
-        if (editor.opts.linkNoReferrer) {
-          if (!attrs.rel) attrs.rel = 'noreferrer';
-          else attrs.rel += ' noreferrer';
-        }
+        if (!attrs.rel) attrs.rel = 'noopener noreferrer';
+        else attrs.rel += ' noopener noreferrer';
       }
       else if (attrs.target == null) {
         if (attrs.rel) {
@@ -700,13 +668,7 @@
 
         // Change text if it is different.
         if (text.length > 0 && $link.text() != text && !$current_image) {
-          var child = $link.get(0);
-
-          while (child.childNodes.length === 1 && child.childNodes[0].nodeType == Node.ELEMENT_NODE) {
-            child = child.childNodes[0];
-          }
-
-          $(child).text(text);
+          $link.text(text);
         }
 
         if (!$current_image) {
@@ -733,13 +695,13 @@
           // Nothing is selected.
           if (editor.selection.isCollapsed()) {
             text = (text.length === 0 ? original_href : text);
-            editor.html.insert('<a href="' + href + '">' + $.FE.START_MARKER + text.replace(/&/g, '&amp;') + $.FE.END_MARKER + '</a>');
+            editor.html.insert('<a href="' + href + '">' + $.FE.START_MARKER + text + $.FE.END_MARKER + '</a>');
             editor.selection.restore();
           }
           else {
             if (text.length > 0 && text != editor.selection.text().replace(/\n/g, '')) {
               editor.selection.remove();
-              editor.html.insert('<a href="' + href + '">' + $.FE.START_MARKER + text.replace(/&/g, '&amp;') + $.FE.END_MARKER + '</a>');
+              editor.html.insert('<a href="' + href + '">' + $.FE.START_MARKER + text + $.FE.END_MARKER + '</a>');
               editor.selection.restore();
             }
             else {
@@ -781,11 +743,7 @@
       }
       else {
         var $pop = editor.popups.get('link.insert');
-
-        if ($pop) {
-          $pop.find('input:focus').blur();
-        }
-
+        $pop.find('input:focus').blur();
         editor.image.edit($current_image);
       }
     }
@@ -850,22 +808,17 @@
     }
 
     function imageLink () {
-      var $el = editor.image ? editor.image.getEl() : null;
+      var $current_image = editor.image ? editor.image.get() : null;
 
-      if ($el) {
+      if ($current_image) {
         var $popup = editor.popups.get('link.insert');
-
-        if (editor.image.hasCaption()) {
-          $el = $el.find('.fr-img-wrap');
-        }
 
         if (!$popup) $popup = _initInsertPopup();
         _refreshInsertPopup(true);
         editor.popups.setContainer('link.insert', editor.$sc);
-        var left = $el.offset().left + $el.outerWidth() / 2;
-        var top = $el.offset().top + $el.outerHeight();
-
-        editor.popups.show('link.insert', left, top, $el.outerHeight());
+        var left = $current_image.offset().left + $current_image.outerWidth() / 2;
+        var top = $current_image.offset().top + $current_image.outerHeight();
+        editor.popups.show('link.insert', left, top, $current_image.outerHeight());
       }
     }
 
@@ -932,10 +885,7 @@
     plugin: 'link'
   })
 
-  $.FE.DefineIcon('linkOpen', {
-    NAME: 'external-link',
-    FA5NAME: 'external-link-alt'
-  });
+  $.FE.DefineIcon('linkOpen', { NAME: 'external-link' });
   $.FE.RegisterCommand('linkOpen', {
     title: 'Open Link',
     undo: false,
@@ -953,12 +903,9 @@
       var link = this.link.get();
 
       if (link) {
-        this.o_win.open(link.href, '_blank', 'noopener');
-
-        this.popups.hide('link.edit');
+        this.o_win.open(link.href);
       }
-    },
-    plugin: 'link'
+    }
   })
 
   $.FE.DefineIcon('linkEdit', { NAME: 'edit' });
@@ -979,8 +926,7 @@
       else {
         $btn.addClass('fr-hidden');
       }
-    },
-    plugin: 'link'
+    }
   })
 
   $.FE.DefineIcon('linkRemove', { NAME: 'unlink' });
@@ -998,8 +944,7 @@
       else {
         $btn.addClass('fr-hidden');
       }
-    },
-    plugin: 'link'
+    }
   })
 
   $.FE.DefineIcon('linkBack', { NAME: 'arrow-left' });
@@ -1024,8 +969,7 @@
         $btn.removeClass('fr-hidden');
         $btn.next('.fr-separator').removeClass('fr-hidden');
       }
-    },
-    plugin: 'link'
+    }
   });
 
   $.FE.DefineIcon('linkList', { NAME: 'search' });
@@ -1048,8 +992,7 @@
     },
     callback: function (cmd, val) {
       this.link.usePredefined(val);
-    },
-    plugin: 'link'
+    }
   })
 
   $.FE.RegisterCommand('linkInsert', {
@@ -1067,8 +1010,7 @@
       else {
         $btn.text(this.language.translate('Insert'));
       }
-    },
-    plugin: 'link'
+    }
   })
 
   // Image link.
@@ -1103,8 +1045,7 @@
 
         $btn.removeClass('fr-hidden');
       }
-    },
-    plugin: 'link'
+    }
   })
 
   // Link styles.
@@ -1140,18 +1081,7 @@
           $(this).toggleClass('fr-active', active).attr('aria-selected', active);
         })
       }
-    },
-    refresh: function ($btn) {
-      var link = this.link.get();
-
-      if (link) {
-        $btn.removeClass('fr-hidden');
-      }
-      else {
-        $btn.addClass('fr-hidden');
-      }
-    },
-    plugin: 'link'
+    }
   })
 
 }));

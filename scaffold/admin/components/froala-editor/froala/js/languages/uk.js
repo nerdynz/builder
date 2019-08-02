@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -64,7 +64,6 @@ $.FE.LANGUAGE['uk'] = {
     "Colors": "\u043a\u043e\u043b\u044c\u043e\u0440\u0438",
     "Background": "\u0424\u043e\u043d",
     "Text": "\u0422\u0435\u043a\u0441\u0442",
-    "HEX Color": "Шістнадцятковий колір",
 
     // Paragraphs
     "Paragraph Format": "\u0424\u043e\u0440\u043c\u0430\u0442",
@@ -121,21 +120,15 @@ $.FE.LANGUAGE['uk'] = {
     "Display": "\u0434\u0438\u0441\u043f\u043b\u0435\u0439",
     "Inline": "\u0412 \u043b\u0456\u043d\u0456\u044e",
     "Break Text": "\u043f\u0435\u0440\u0435\u0440\u0432\u0430 \u0442\u0435\u043a\u0441\u0442",
-    "Alternative Text": "\u0430\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u0438\u0439 \u0442\u0435\u043a\u0441\u0442",
+    "Alternate Text": "\u0430\u043b\u044c\u0442\u0435\u0440\u043d\u0430\u0442\u0438\u0432\u043d\u0438\u0439 \u0442\u0435\u043a\u0441\u0442",
     "Change Size": "\u0437\u043c\u0456\u043d\u0438\u0442\u0438 \u0440\u043e\u0437\u043c\u0456\u0440",
     "Width": "\u0428\u0438\u0440\u0438\u043d\u0430",
     "Height": "\u0412\u0438\u0441\u043e\u0442\u0430",
     "Something went wrong. Please try again.": "\u0429\u043e\u0441\u044c \u043f\u0456\u0448\u043b\u043e \u043d\u0435 \u0442\u0430\u043a. \u0411\u0443\u0434\u044c \u043b\u0430\u0441\u043a\u0430 \u0441\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0449\u0435 \u0440\u0430\u0437.",
-    "Image Caption": "Заголовок зображення",
-    "Advanced Edit": "Розширений редагування",
 
     // Video
     "Insert Video": "\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u0438 \u0432\u0456\u0434\u0435\u043e",
     "Embedded Code": "\u0432\u0431\u0443\u0434\u043e\u0432\u0430\u043d\u0438\u0439 \u043a\u043e\u0434",
-    "Paste in a video URL": "Вставте в відео-URL",
-    "Drop video": "Перетягніть відео",
-    "Your browser does not support HTML5 video.": "Ваш браузер не підтримує відео html5.",
-    "Upload Video": "Завантажити відео",
 
     // Tables
     "Insert Table": "\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u0438 \u0442\u0430\u0431\u043b\u0438\u0446\u044e",
@@ -260,57 +253,7 @@ $.FE.LANGUAGE['uk'] = {
     "Decrease": "\u0437\u043d\u0438\u0436\u0435\u043d\u043d\u044f",
 
     // Quick Insert
-    "Quick Insert": "\u0428\u0432\u0438\u0434\u043a\u0438\u0439 \u0432\u0441\u0442\u0430\u0432\u043a\u0430",
-
-    // Spcial Characters
-    "Special Characters": "Спеціальні символи",
-    "Latin": "Латинський",
-    "Greek": "Грецький",
-    "Cyrillic": "Кирилиця",
-    "Punctuation": "Пунктуація",
-    "Currency": "Валюта",
-    "Arrows": "Стріли",
-    "Math": "Математика",
-    "Misc": "Різне",
-
-    // Print.
-    "Print": "Друкувати",
-
-    // Spell Checker.
-    "Spell Checker": "Перевірка орфографії",
-
-    // Help
-    "Help": "Допомогти",
-    "Shortcuts": "Ярлики",
-    "Inline Editor": "Вбудований редактор",
-    "Show the editor": "Показати редактору",
-    "Common actions": "Спільні дії",
-    "Copy": "Скопіювати",
-    "Cut": "Вирізати",
-    "Paste": "Вставити",
-    "Basic Formatting": "Основне форматування",
-    "Increase quote level": "Збільшити рівень цитування",
-    "Decrease quote level": "Знизити рівень цитування",
-    "Image / Video": "Зображення / відео",
-    "Resize larger": "Змінити розмір більше",
-    "Resize smaller": "Змінити розмір менше",
-    "Table": "Стіл",
-    "Select table cell": "Виберіть комірку таблиці",
-    "Extend selection one cell": "Продовжити виділення однієї комірки",
-    "Extend selection one row": "Продовжити виділення одного рядка",
-    "Navigation": "Навігація",
-    "Focus popup / toolbar": "Фокус спливаюче / панель інструментів",
-    "Return focus to previous position": "Поверніть фокус на попередню позицію",
-
-    // Embed.ly
-    "Embed URL": "Вставити URL-адресу",
-    "Paste in a URL to embed": "Вставте в url, щоб вставити",
-
-    // Word Paste.
-    "The pasted content is coming from a Microsoft Word document. Do you want to keep the format or clean it up?": "Вставлений вміст надходить з документу Microsoft Word. ви хочете зберегти формат чи очистити його?",
-    "Keep": "Тримати",
-    "Clean": "Чистий",
-    "Word Paste Detected": "Слово паста виявлено"
+    "Quick Insert": "\u0428\u0432\u0438\u0434\u043a\u0438\u0439 \u0432\u0441\u0442\u0430\u0432\u043a\u0430"
   },
   direction: "ltr"
 };

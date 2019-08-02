@@ -1,18 +1,24 @@
 module.exports = {
   root: true,
-  parser: 'babel-eslint',
   env: {
     browser: true,
     node: true,
     jquery: true
   },
-  extends: 'standard',
-  // required to lint *.vue files
-  plugins: [
-    'html'
+  parserOptions: {
+    parser: 'babel-eslint'
+  },
+  extends: [
+    '@nuxtjs',
+    'plugin:nuxt/recommended',
+    'standard'
   ],
+  env: {
+    'jquery': true
+  },
   // add your custom rules here
-  rules: {},
-  globals: {
+  rules: {
+    'prefer-const': 0,
+    'no-console': 0
   }
 }

@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 .clearfix::after {
@@ -26,12 +26,12 @@
 }
 .fr-box.fr-basic .fr-element {
   color: #000000;
-  padding: 16px;
+  padding: 10px;
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
   box-sizing: border-box;
   overflow-x: auto;
-  min-height: 52px;
+  min-height: 40px;
 }
 .fr-box.fr-basic.fr-rtl .fr-element {
   text-align: right;
@@ -51,6 +51,14 @@
   -ms-user-select: auto;
 }
 .fr-element.fr-disabled {
+  user-select: none;
+  -o-user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+.fr-element [contenteditable="false"] {
   user-select: none;
   -o-user-select: none;
   -moz-user-select: none;
@@ -101,8 +109,7 @@
   -o-transition: transform 0.2s ease 0s;
   fill: #1e88e5;
 }
-.fr-box a.fr-floating-btn i,
-.fr-box a.fr-floating-btn svg {
+.fr-box a.fr-floating-btn i {
   font-size: 14px;
   line-height: 32px;
 }
@@ -156,11 +163,11 @@ iframe.fr-iframe {
 .fr-wrapper.show-placeholder .fr-placeholder {
   display: block;
 }
-.fr-wrapper ::-moz-selection {
+.fr-wrapper ::selection {
   background: #b5d6fd;
   color: #000000;
 }
-.fr-wrapper ::selection {
+.fr-wrapper ::-moz-selection {
   background: #b5d6fd;
   color: #000000;
 }
@@ -229,7 +236,7 @@ iframe.fr-iframe {
   -khtml-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
-  z-index: 2147483647;
+  z-index: 9997;
   text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -288,9 +295,7 @@ iframe.fr-iframe {
   width: auto;
 }
 .fr-toolbar .fr-command.fr-btn i,
-.fr-popup .fr-command.fr-btn i,
-.fr-toolbar .fr-command.fr-btn svg,
-.fr-popup .fr-command.fr-btn svg {
+.fr-popup .fr-command.fr-btn i {
   display: block;
   font-size: 14px;
   width: 14px;
@@ -346,9 +351,7 @@ iframe.fr-iframe {
 .fr-toolbar .fr-command.fr-btn.fr-dropdown span,
 .fr-popup .fr-command.fr-btn.fr-dropdown span,
 .fr-toolbar .fr-command.fr-btn.fr-dropdown img,
-.fr-popup .fr-command.fr-btn.fr-dropdown img,
-.fr-toolbar .fr-command.fr-btn.fr-dropdown svg,
-.fr-popup .fr-command.fr-btn.fr-dropdown svg {
+.fr-popup .fr-command.fr-btn.fr-dropdown img {
   margin-left: 8px;
   margin-right: 16px;
 }
@@ -573,7 +576,7 @@ body.prevent-scroll.fr-mobile {
   bottom: 0;
   right: 0;
   width: 100%;
-  z-index: 2147483640;
+  z-index: 9999;
   text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -641,7 +644,7 @@ body.prevent-scroll.fr-mobile {
   -ms-transition: height 0.2s ease 0s;
   -o-transition: height 0.2s ease 0s;
 }
-.fr-modal .fr-modal-wrapper .fr-modal-head .fr-modal-close {
+.fr-modal .fr-modal-wrapper .fr-modal-head i {
   padding: 12px;
   width: 20px;
   font-size: 16px;
@@ -651,6 +654,8 @@ body.prevent-scroll.fr-mobile {
   -webkit-box-sizing: content-box;
   -moz-box-sizing: content-box;
   box-sizing: content-box;
+}
+.fr-modal .fr-modal-wrapper .fr-modal-head i.fr-modal-close {
   position: absolute;
   top: 0;
   right: 0;
@@ -692,12 +697,6 @@ body.prevent-scroll.fr-mobile {
   -moz-transition: background 0.2s ease 0s;
   -ms-transition: background 0.2s ease 0s;
   -o-transition: background 0.2s ease 0s;
-  border-radius: 2px;
-  -moz-border-radius: 2px;
-  -webkit-border-radius: 2px;
-  -moz-background-clip: padding;
-  -webkit-background-clip: padding-box;
-  background-clip: padding-box;
 }
 .fr-modal .fr-modal-wrapper div.fr-modal-body button.fr-command + button {
   margin-left: 24px;
@@ -728,7 +727,7 @@ body.prevent-scroll.fr-mobile {
   -moz-opacity: 0.5;
   opacity: 0.5;
   -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-  z-index: 2147483639;
+  z-index: 9998;
 }
 .fr-popup {
   position: absolute;
@@ -755,7 +754,7 @@ body.prevent-scroll.fr-mobile {
   -webkit-user-select: none;
   -ms-user-select: none;
   margin-top: 10px;
-  z-index: 2147483635;
+  z-index: 9995;
   text-align: left;
   border: 0px;
   border-top: 5px solid #222222;
@@ -783,9 +782,6 @@ body.prevent-scroll.fr-mobile {
   -moz-opacity: 0;
   opacity: 0;
   -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-}
-.fr-popup.fr-empty {
-  display: none !important;
 }
 .fr-popup .fr-hs {
   display: block !important;
@@ -923,12 +919,6 @@ body.prevent-scroll.fr-mobile {
   -moz-transition: background 0.2s ease 0s;
   -ms-transition: background 0.2s ease 0s;
   -o-transition: background 0.2s ease 0s;
-  border-radius: 2px;
-  -moz-border-radius: 2px;
-  -webkit-border-radius: 2px;
-  -moz-background-clip: padding;
-  -webkit-background-clip: padding-box;
-  background-clip: padding-box;
 }
 .fr-popup .fr-action-buttons button.fr-command + button {
   margin-left: 24px;

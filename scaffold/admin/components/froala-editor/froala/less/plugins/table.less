@@ -29,7 +29,7 @@
 
 .fr-table-resizer {
   cursor: col-resize;
-  position: absolute;
+  position: fixed;
   z-index: 3;
   display: none;
 
@@ -49,38 +49,6 @@
 
 // Table popups.
 .fr-popup {
-  .fr-table-colors-hex-layer {
-    width: 100%;
-    margin: 0px;
-    padding: 10px;
-
-    .fr-input-line {
-      float: left;
-      width: calc(100% - 50px);
-      padding: 8px 0 0;
-    }
-
-    .fr-action-buttons {
-      float: right;
-      width: 50px;
-    }
-
-    .fr-action-buttons {
-      button {
-        background-color: @ui-color;
-        color: #FFF;
-        .border-radius(@border-radius);
-        font-size: 13px;
-        height: 32px;
-
-        &:hover {
-          background-color: darken(@ui-color, 10%);
-          color: #FFF;
-        }
-      }
-    }
-  }
-
   // Insert table.
   .fr-table-size {
     .fr-table-size-info {
@@ -174,7 +142,7 @@
 }
 
 .fr-insert-helper {
-  position: absolute;
+  position: fixed;
   z-index: 9999;
   white-space: nowrap;
 }

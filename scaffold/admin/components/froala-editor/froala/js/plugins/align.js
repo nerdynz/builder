@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -36,38 +36,31 @@
   $.FE.PLUGINS.align = function (editor) {
     function apply (val) {
 
-      var el = editor.selection.element();
+      // Wrap.
+      editor.selection.save();
+      editor.html.wrap(true, true, true, true);
+      editor.selection.restore();
 
-      if ($(el).parents('.fr-img-caption').length) {
-        $(el).css('text-align', val);
-      }
-      else {
-        // Wrap.
-        editor.selection.save();
-        editor.html.wrap(true, true, true, true);
-        editor.selection.restore();
+      var blocks = editor.selection.blocks();
 
-        var blocks = editor.selection.blocks();
+      for (var i = 0; i < blocks.length; i++) {
 
-        for (var i = 0; i < blocks.length; i++) {
-
-          // Check if we should reset to default value.
-          if (editor.helpers.getAlignment($(blocks[i].parentNode)) == val) {
-            $(blocks[i]).css('text-align', '').removeClass('fr-temp-div');
-          }
-          else {
-            $(blocks[i]).css('text-align', val).removeClass('fr-temp-div');
-          }
-
-          if ($(blocks[i]).attr('class') === '') $(blocks[i]).removeAttr('class');
-
-          if ($(blocks[i]).attr('style') === '') $(blocks[i]).removeAttr('style');
+        // Check if we should reset to default value.
+        if (editor.helpers.getAlignment($(blocks[i].parentNode)) == val) {
+          $(blocks[i]).css('text-align', '').removeClass('fr-temp-div');
+        }
+        else {
+          $(blocks[i]).css('text-align', val).removeClass('fr-temp-div');
         }
 
-        editor.selection.save();
-        editor.html.unwrap();
-        editor.selection.restore();
+        if ($(blocks[i]).attr('class') === '') $(blocks[i]).removeAttr('class');
+
+        if ($(blocks[i]).attr('style') === '') $(blocks[i]).removeAttr('style');
       }
+
+      editor.selection.save();
+      editor.html.unwrap();
+      editor.selection.restore();
     }
 
     function refresh ($btn) {

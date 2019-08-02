@@ -104,7 +104,7 @@ export const mutations = {
     state.breadcrumb = breadcrumb
   },
 
-  ADD_TO_UPLOADS (state, {ulid, data}) {
+  ADD_TO_UPLOADS (state, { ulid, data }) {
     state.fileQueue[ulid] = data
   },
 
@@ -116,7 +116,7 @@ export const mutations = {
 
 export const actions = {
   loadSettings ({ commit }) {
-    this.$axios.get('/api/v1/settings/retrieve/1').then(({data}) => {
+    this.$axios.get('/api/v1/settings/retrieve/1').then(({ data }) => {
       commit('SET_SETTINGS', data)
     })
   },

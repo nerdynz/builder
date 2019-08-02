@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -68,13 +68,8 @@
     function save (html) {
       if (typeof html == 'undefined') html = editor.html.get();
 
-      var original_html = html;
-
       // Trigger before save event.
-      var event_returned_value = editor.events.trigger('save.before', [html]);
-
-      if (event_returned_value === false) return false;
-      else if (typeof event_returned_value == 'string') html = event_returned_value;
+      if (editor.events.trigger('save.before') === false) return false;
 
       if (editor.opts.saveURL) {
         var params = {};
@@ -106,7 +101,7 @@
           headers: editor.opts.requestHeaders
         })
         .done(function (data) {
-          _last_html = original_html;
+          _last_html = html;
 
           // data
           editor.events.trigger('save.after', [data]);
@@ -174,10 +169,7 @@
     }
   }
 
-  $.FE.DefineIcon('save', {
-    NAME: 'floppy-o',
-    FA5NAME: 'disk'
-  });
+  $.FE.DefineIcon('save', { NAME: 'floppy-o' });
   $.FE.RegisterCommand('save', {
     title: 'Save',
     undo: false,

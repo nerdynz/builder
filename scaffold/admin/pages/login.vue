@@ -1,14 +1,17 @@
 <template>
-<div class="content u-fh">
   <div class="columns u-fh is-vcentered -u-m">
     <div class="column is-6 is-offset-3">
       <div class="logo-wrap has-text-centered u-fw">
-        <img class="logo" src="~public/images/Logo-hoz.png" alt="">
+        <logo />
       </div>
       <div class="box">
-        <h1 class="is-title is-bold">Login</h1>
-        <div v-show="error" style="color:red; word-wrap:break-word;">{{ error }}</div>
-        <form v-on:submit.prevent="submitLogin">
+        <h1 class="title">
+          Login
+        </h1>
+        <div v-show="error" style="color:red; word-wrap:break-word;">
+          {{ error }}
+        </div>
+        <form @submit.prevent="submitLogin">
           <div class="field">
             <label class="label">Email</label>
             <p class="control">
@@ -23,39 +26,37 @@
           </div>
           <div class="field has-addons u-mt">
             <p class="control">
-              <button type="submit" class="button is-primary">Login</button>
+              <button type="submit" class="button is-primary">
+                Login
+              </button>
             </p>
             <p class="control">
-              <button class="button is-default">Cancel</button>
+              <button class="button is-default">
+                Cancel
+              </button>
             </p>
           </div>
         </form>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script>
-import {mapActions} from 'vuex'
+import {
+  mapActions
+} from 'vuex'
+import Logo from '~/components/Logo'
 
 export default {
   // COMPONENT
   // ______________________________________
   name: 'Login',
   layout: 'simple',
-  components: {},
-  props: {},
-  computed: {},
-  methods: {
-    ...mapActions({
-      login: 'auth/login'
-    }),
-    submitLogin () {
-      this.login(this.details)
-    }
+  components: {
+    Logo
   },
-  watch: {},
+  props: {},
   data () {
     return {
       details: {
@@ -66,25 +67,15 @@ export default {
       error: ''
     }
   },
-
-  // LIFECYCLE METHODS
-  // ______________________________________
-  beforeCreate () {
-  },
-  created () {
-  },
-  beforeMount () {
-  },
-  mounted () {
-  },
-  beforeUpdate () {
-  },
-  updated () {
-  },
-  beforeDestroy () {
-  },
-  destroyed () {
+  computed: {},
+  watch: {},
+  methods: {
+    ...mapActions({
+      login: 'auth/login'
+    }),
+    submitLogin () {
+      this.login(this.details)
+    }
   }
 }
 </script>
-

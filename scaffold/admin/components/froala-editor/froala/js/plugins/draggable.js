@@ -1,7 +1,7 @@
 /*!
- * froala_editor v2.8.4 (https://www.froala.com/wysiwyg-editor)
+ * froala_editor v2.6.4 (https://www.froala.com/wysiwyg-editor)
  * License https://froala.com/wysiwyg-editor/terms/
- * Copyright 2014-2018 Froala Labs
+ * Copyright 2014-2017 Froala Labs
  */
 
 (function (factory) {
@@ -316,16 +316,10 @@
         // Remove dragging class.
         $draggedEl.removeClass('fr-dragging');
 
-        $draggedEl = editor.events.chainTrigger('element.beforeDrop', $draggedEl);
-
-        if ($draggedEl === false) {
-          return false;
-        }
-
         // Image with link.
         var $droppedEl = $draggedEl;
 
-        if ($draggedEl.parent().is('A') && $draggedEl.parent().get(0).childNodes.length == 1) {
+        if ($draggedEl.parent().is('A')) {
           $droppedEl = $draggedEl.parent();
         }
 
@@ -350,7 +344,7 @@
           if ($droppedEl.find(marker).length === 0) {
             $(marker).replaceWith($droppedEl);
           }
-          else if ($draggedEl.find(marker).length === 0) {
+          else {
             $(marker).replaceWith($draggedEl);
           }
 
@@ -364,7 +358,7 @@
         // Hide all popups.
         editor.popups.hideAll();
         editor.selection.save();
-        editor.$el.find(editor.html.emptyBlockTagsQuery()).not('TD, TH, LI, .fr-inner').not(editor.opts.htmlAllowedEmptyTags.join(',')).remove();
+        editor.$el.find(editor.html.emptyBlockTagsQuery()).not('TD, TH, LI, .fr-inner').remove();
         editor.html.wrap();
         editor.html.fillEmptyBlocks();
         editor.selection.restore();

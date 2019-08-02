@@ -11,8 +11,8 @@ import (
 
 	"strconv"
 
+	"github.com/nerdynz/builder/scaffold/server/models"
 	flow "github.com/nerdynz/flow"
-	"repo.nerdy.co.nz/thecollins/thecollins/server/models"
 )
 
 func FileUpload(ctx *flow.Context) {
