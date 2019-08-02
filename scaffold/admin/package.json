@@ -1,7 +1,7 @@
 {
-  "name": "admin",
+  "name": "scaffold",
   "version": "1.0.0",
-  "description": "My magnificent Nuxt.js project",
+  "description": "",
   "author": "Joshua Cave",
   "private": true,
   "scripts": {

@@ -394,60 +394,90 @@ func camelCase(str string) string {
 	return str
 }
 
-func visit(path string, fi os.FileInfo, err error) error {
-
+func visit(path string, name string, replacement string, fi os.FileInfo, err error) error {
 	if err != nil {
 		return err
 	}
 
 	if !!fi.IsDir() {
-		return nil //
+		return nil
 	}
+	// fmt.Println(path)
 
-	matched, err := filepath.Match("*.txt", fi.Name())
-
+	isGoFile, err := filepath.Match("*.go", fi.Name())
 	if err != nil {
-		panic(err)
 		return err
 	}
 
-	if matched {
-		read, err := ioutil.ReadFile(path)
-		if err != nil {
-			panic(err)
-		}
-		//fmt.Println(string(read))
-		fmt.Println(path)
-
-		newContents := strings.Replace(string(read), "old", "new", -1)
-
-		fmt.Println(newContents)
-
-		err = ioutil.WriteFile(path, []byte(newContents), 0)
-		if err != nil {
-			panic(err)
-		}
-
+	isProcFile, err := filepath.Match("Procfile", fi.Name())
+	if err != nil {
+		return err
+	}
+	isPackageJSON, err := filepath.Match("package.json", fi.Name())
+	if err != nil {
+		return err
 	}
 
+	isDotEnv, err := filepath.Match(".env", fi.Name())
+	if err != nil {
+		return err
+	}
+
+	if isGoFile || isProcFile || isPackageJSON || isDotEnv {
+		read, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		// fmt.Println(path, replacement)
+		newContents := ""
+		if isProcFile || isPackageJSON || isDotEnv {
+			newContents = strings.Replace(string(read), "scaffold", name, -1)
+		} else {
+			newContents = strings.Replace(string(read), "github.com/nerdynz/builder/scaffold", replacement, -1)
+		}
+
+		if newContents != "" {
+			err = ioutil.WriteFile(path, []byte(newContents), 0)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
-func walkFiles(c *cli.Context, r *render.Render, db *runner.DB) {
-	err := filepath.Walk(".", visit)
+func walkFiles(path string, name, replacement string) error {
+	// fmt.Println("path:" + path + "    replacement:" + replacement)
+	err := filepath.Walk(path, func(path string, fi os.FileInfo, err error) error {
+		return visit(path, name, replacement, fi, err)
+	})
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func createProject(c *cli.Context, r *render.Render) error {
 	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/builder/scaffold"
 	projectName := c.Args().First()
 	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
+	projectReplace := c.Args().Get(1)
+	fmt.Println(projectReplace)
 	if strings.Contains(projectName, "/") || outpath == "" || projectName == "" {
 		return errors.New("Did you specify a project name and path?")
 	}
 	fmt.Println("copying " + fullpath + " to " + outpath)
 	err := Copy(fullpath, outpath)
-	return err
+	if err != nil {
+		if strings.HasPrefix(err.Error(), "symlink") {
+			fmt.Println(err.Error())
+		} else {
+			return err
+		}
+	}
+	err = walkFiles(outpath, projectName, projectReplace)
+	if err != nil {
+		return err
+	}
+	return nil
 }
