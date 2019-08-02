@@ -462,7 +462,6 @@ func createProject(c *cli.Context, r *render.Render) error {
 	projectName := c.Args().First()
 	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
 	projectReplace := c.Args().Get(1)
-	fmt.Println(projectReplace)
 	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
 		return errors.New("Did you specify a project name and path?")
 	}
