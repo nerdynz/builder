@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/gorilla/schema"
-	runner "github.com/bkono/dat/sqlx-runner"
+	runner "github.com/nerdynz/dat/sqlx-runner"
 	"github.com/pinzolo/casee"
 	validator "gopkg.in/go-playground/validator.v9"
 	redis "gopkg.in/redis.v5"
