@@ -15,7 +15,7 @@ import (
 
 	"github.com/nerdynz/flow"
 
-	dat "github.com/nerdynz/dat"
+	dat "github.com/bkono/dat"
 )
 
 var HelperFuncs = template.FuncMap{

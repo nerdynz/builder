@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	dat "github.com/nerdynz/dat"
-	runner "github.com/nerdynz/dat/sqlx-runner"
+	dat "github.com/bkono/dat"
+	runner "github.com/bkono/dat/sqlx-runner"
 
 	"github.com/jaybeecave/render"
 	"github.com/urfave/cli"

@@ -6,7 +6,7 @@ import (
 	"github.com/go-zoo/bone"
 	"github.com/nerdynz/builder/scaffold/server/actions"
 	"github.com/nerdynz/builder/scaffold/server/models"
-	"github.com/nerdynz/datastore"
+	"github.com/bkono/datastore"
 	"github.com/nerdynz/flow"
 	"github.com/nerdynz/router"
 	"github.com/nerdynz/security"

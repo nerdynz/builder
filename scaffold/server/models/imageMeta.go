@@ -13,7 +13,7 @@ import (
 
 	"sort"
 
-	runner "github.com/nerdynz/dat/sqlx-runner"
+	runner "github.com/bkono/dat/sqlx-runner"
 	redis "gopkg.in/redis.v5"
 )
 

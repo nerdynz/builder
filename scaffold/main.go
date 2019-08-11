@@ -6,7 +6,7 @@ import (
 
 	"github.com/nerdynz/builder/scaffold/server"
 	"github.com/nerdynz/builder/scaffold/server/models"
-	"github.com/nerdynz/datastore"
+	"github.com/bkono/datastore"
 	"github.com/unrolled/render"
 	"github.com/urfave/negroni"
 )

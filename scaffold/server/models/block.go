@@ -15,8 +15,8 @@ import (
 
 	"sort"
 
-	dat "github.com/nerdynz/dat"
-	runner "github.com/nerdynz/dat/sqlx-runner"
+	dat "github.com/bkono/dat"
+	runner "github.com/bkono/dat/sqlx-runner"
 	validator "gopkg.in/go-playground/validator.v9"
 	redis "gopkg.in/redis.v5"
 )

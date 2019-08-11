@@ -23,7 +23,7 @@ import (
 	"github.com/jaybeecave/render"
 	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
-	runner "github.com/nerdynz/dat/sqlx-runner"
+	runner "github.com/bkono/dat/sqlx-runner"
 	"github.com/urfave/cli"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres"
 	"gopkg.in/mattes/migrate.v1/file"
