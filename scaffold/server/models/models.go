@@ -5,7 +5,7 @@ import (
 	runner "github.com/nerdynz/dat/sqlx-runner"
 	"github.com/pinzolo/casee"
 	validator "gopkg.in/go-playground/validator.v9"
-	redis "gopkg.in/redis.v5"
+	redis "github.com/go-redis/redis"
 )
 
 const NoRows = "sql: no rows in result set"

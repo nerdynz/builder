@@ -13,7 +13,7 @@ import (
 	"sort"
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	redis "gopkg.in/redis.v5"
+	redis "github.com/go-redis/redis"
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
@@ -59,7 +59,7 @@ type {{.TableNameCamel}}Helper struct {
 
 func {{.TableNameTitle}}Helper() *{{.TableNameCamel}}Helper {
 	if {{.TableNameCamel}}HelperGlobal == nil {
-		{{.TableNameCamel}}HelperGlobal = new{{.TableNameTitle}}Helper(modelDB, modelCache, modelDecoder)
+		{{.TableNameCamel}}HelperGlobal = new{{.TableNameTitle}}Helper(modelDB, modelCache, modelDecoder, modelValidator)
 	}
 	return {{.TableNameCamel}}HelperGlobal
 }
@@ -272,7 +272,7 @@ func (h *{{.TableNameCamel}}Helper) validate(record *{{.TableNameTitle}}) (err e
 	if validationErrors != nil {
 		errMessage := ""
 		for _, err := range err.(validator.ValidationErrors) {
-			errMessage += err.Kind() + " validation Error on field "+err.Field()+ 
+			errMessage += err.Kind() + " validation Error on field "+err.Field()
 		}
 		if errMessage != "" {
 			err = errors.New(errMessage)

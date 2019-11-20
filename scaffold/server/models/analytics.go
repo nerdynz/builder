@@ -16,7 +16,7 @@ import (
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
 	validator "gopkg.in/go-playground/validator.v9"
-	redis "gopkg.in/redis.v5"
+	redis "github.com/go-redis/redis"
 )
 
 // Analytics Struct

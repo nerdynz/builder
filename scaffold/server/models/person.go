@@ -15,7 +15,7 @@ import (
 	runner "github.com/nerdynz/dat/sqlx-runner"
 	"github.com/nerdynz/security"
 	validator "gopkg.in/go-playground/validator.v9"
-	redis "gopkg.in/redis.v5"
+	redis "github.com/go-redis/redis"
 )
 
 var personHelperGlobal *personHelper

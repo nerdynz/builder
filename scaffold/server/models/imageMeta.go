@@ -14,7 +14,7 @@ import (
 	"sort"
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	redis "gopkg.in/redis.v5"
+	redis "github.com/go-redis/redis"
 )
 
 // ImageMeta Struct
