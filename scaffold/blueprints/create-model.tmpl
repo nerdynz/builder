@@ -13,7 +13,7 @@ import (
 	"sort"
 
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	redis "github.com/go-redis/redis"
+	"github.com/shomali11/xredis"
 	validator "gopkg.in/go-playground/validator.v9"
 )
 
@@ -50,8 +50,7 @@ func (h *{{.TableNameCamel}}Helper) afterSave(record *{{.TableNameTitle}}) (err 
 // GENERATED CODE - Leave the below code alone
 type {{.TableNameCamel}}Helper struct {
 	DB            *runner.DB
-	Cache         *redis.Client
-	structDecoder *schema.Decoder
+	Cache         *xredis.Client
 	validator *validator.Validate
 	fieldNames    []string
 	orderBy       string
@@ -64,12 +63,12 @@ func {{.TableNameTitle}}Helper() *{{.TableNameCamel}}Helper {
 	return {{.TableNameCamel}}HelperGlobal
 }
 
-func new{{.TableNameTitle}}Helper(db *runner.DB, redis *redis.Client, d *schema.Decoder, v *validator.Validate) *{{.TableNameCamel}}Helper {
+func new{{.TableNameTitle}}Helper(db *runner.DB, redis *xredis.Client) *{{.TableNameCamel}}Helper {
 	helper := &{{.TableNameCamel}}Helper{}
 	helper.DB = db
 	helper.Cache = redis
 	helper.structDecoder = d
-	helper.modelValidator = v
+	helper.validator = v
 
 	// Fields
 	fieldnames := []string{"{{.TableID}}", {{.ColumnsDBStrings}}}
@@ -80,15 +79,16 @@ func new{{.TableNameTitle}}Helper(db *runner.DB, redis *redis.Client, d *schema.
 	return helper
 }
 
-func (h *{{.TableNameCamel}}Helper) New() *{{.TableNameTitle}} {
+func (h *{{.TableNameCamel}}Helper) New(siteID int) *{{.TableNameTitle}} {
 	record := &{{.TableNameTitle}}{}
 	// check DateCreated
 	record.DateCreated = time.Now()
+	record.SiteID = siteID
 	return record
 }
 
-func (h *{{.TableNameCamel}}Helper) FromRequest(req *http.Request) (*{{.TableNameTitle}}, error) {
-	record := h.New()
+func (h *{{.TableNameCamel}}Helper) FromRequest(siteID int, req *http.Request) (*{{.TableNameTitle}}, error) {
+	record := h.New(siteID)
 	contentType := req.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") {
 		// working with json
@@ -109,21 +109,27 @@ func (h *{{.TableNameCamel}}Helper) FromRequest(req *http.Request) (*{{.TableNam
 			return nil, err
 		}
 	}
+	if record.SiteID != siteID {
+		return nil, errors.New("*{{.TableNameTitle}} update failed. SiteID Mismatch")
+	}
+	record.SiteID = siteID
 	return record, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Load(id int) (*{{.TableNameTitle}}, error) {
-	record, err := h.One("{{.TableID}} = $1", id)
+
+func (h *{{.TableNameCamel}}Helper) Load(siteID int, id int) (*{{.TableNameTitle}}, error) {
+	record, err := h.One(siteID, "{{.TableID}} = $1", id)
 	if err != nil {
 		return nil, err
 	}
 	return record, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) All() ({{.TableNamePluralTitle}}, error) {
+func (h *{{.TableNameCamel}}Helper) All(siteID int) ({{.TableNamePluralTitle}}, error) {
 	var records {{.TableNamePluralTitle}}
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
+		Where("site_id = $1", siteID).
 		OrderBy(h.orderBy).
 		QueryStructs(&records)
 
@@ -134,11 +140,12 @@ func (h *{{.TableNameCamel}}Helper) All() ({{.TableNamePluralTitle}}, error) {
 	return records, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Where(whereSQLOrMap interface{}, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
+func (h *{{.TableNameCamel}}Helper) Where(siteID int, sql string, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
 	var records {{.TableNamePluralTitle}}
+	sql, args = appendSiteID(siteID, sql, args...)
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
-		Where(whereSQLOrMap, args...).
+		Where(sql, args...).
 		OrderBy(h.orderBy).
 		QueryStructs(&records)
 
@@ -149,11 +156,28 @@ func (h *{{.TableNameCamel}}Helper) Where(whereSQLOrMap interface{}, args ...int
 	return records, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) One(whereSQLOrMap interface{}, args ...interface{}) (*{{.TableNameTitle}}, error) {
+func (h *{{.TableNameCamel}}Helper) SQL(siteID int, sql string, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
+	if !strings.Contains(sql, "$SITEID") {
+		return nil, errors.New("No $SITEID placeholder defined")
+	}
+	var records {{.TableNamePluralTitle}}
+	sql, args = appendSiteID(siteID, sql, args...)
+	err := h.DB.SQL(sql, args...).
+		QueryStructs(&records)
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) One(siteID int, sql string, args ...interface{}) (*{{.TableNameTitle}}, error) {
 	var record {{.TableNameTitle}}
+	sql, args = appendSiteID(siteID, sql, args...)
+
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
-		Where(whereSQLOrMap, args...).
+		Where(sql, args...).
 		OrderBy(h.orderBy).
 		Limit(1).
 		QueryStruct(&record)
@@ -165,15 +189,15 @@ func (h *{{.TableNameCamel}}Helper) One(whereSQLOrMap interface{}, args ...inter
 	return &record, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Paged(pageNum int, itemsPerPage int) (*PagedData, error) {
-	pd, err := h.PagedBy(pageNum, itemsPerPage, "date_created", "") // date_created should be the most consistant because it doesn't change
+func (h *{{.TableNameCamel}}Helper) Paged(siteID int, pageNum int, itemsPerPage int) (*PagedData, error) {
+	pd, err := h.PagedBy(siteID, pageNum, itemsPerPage, "date_created", "") // date_created should be the most consistant because it doesn't change
 	if err != nil {
 		return nil, err
 	}
 	return pd, nil
 }
 
-func (h *{{.TableNameCamel}}Helper) PagedBy(pageNum int, itemsPerPage int, orderByFieldName string, direction string) (*PagedData, error) {
+func (h *{{.TableNameCamel}}Helper) PagedBy(siteID int, pageNum int, itemsPerPage int, orderByFieldName string, direction string) (*PagedData, error) {
 	if orderByFieldName == "" || orderByFieldName == "default" {
 		// we only want the first field name
 		orderByFieldName = strings.Split(h.orderBy, ",")[0]
@@ -192,6 +216,7 @@ func (h *{{.TableNameCamel}}Helper) PagedBy(pageNum int, itemsPerPage int, order
 	var records {{.TableNamePluralTitle}}
 	err := h.DB.Select("*").
 		From("{{.TableName}}").
+		Where("site_id = $1", siteID).
 		OrderBy(orderByFieldName + " " + direction).
 		Offset(uint64((pageNum - 1) * itemsPerPage)).
 		Limit(uint64(itemsPerPage)).
@@ -202,18 +227,17 @@ func (h *{{.TableNameCamel}}Helper) PagedBy(pageNum int, itemsPerPage int, order
 	}
 
 	count := 0
-	h.DB.SQL(`select count({{.TableID}}) from {{.TableName}}`).QueryStruct(&count)
+	h.DB.SQL(`select count({{.TableName}}_id) from {{.TableName}} where site_id = $1`, siteID).QueryStruct(&count)
 	return NewPagedData(records, orderByFieldName, direction, itemsPerPage, pageNum, count), nil
 }
 
-func (h *{{.TableNameCamel}}Helper) Save(record *{{.TableNameTitle}}) error {
-	return h.save(record)
+func (h *{{.TableNameCamel}}Helper) Save(siteID int, record *{{.TableNameTitle}}) error {
+	return h.save(siteID, record)
 }
 
-func (h *{{.TableNameCamel}}Helper) SaveMany(records {{.TableNamePluralTitle}}) error {
+func (h *{{.TableNameCamel}}Helper) SaveMany(siteID int, records {{.TableNamePluralTitle}}) error {
 	for _, record := range records {
-		// everything is validated so now re loop and do the actual saving... this should probably be a tx that can just rollback
-		err := h.save(record)
+		err := h.save(siteID, record)
 		if err != nil {
 			return err
 		}
@@ -222,10 +246,14 @@ func (h *{{.TableNameCamel}}Helper) SaveMany(records {{.TableNamePluralTitle}}) 
 	return nil
 }
 
-func (h *{{.TableNameCamel}}Helper) save(record *{{.TableNameTitle}}) (err error) {
-	err = h.beforeSave(record)
+func (h *{{.TableNameCamel}}Helper) save(siteID int, record *{{.TableNameTitle}}) error {
+	err := h.beforeSave(record)
 	if err != nil {
 		return err
+	}
+
+	if record.SiteID != siteID {
+		return errors.New("*{{.TableNameTitle}} update failed. SiteID Mismatch")
 	}
 	cols := []string{ {{.ColumnsDBStrings}} }
 	vals := []interface{}{ {{.ColumnsRecordPrefixedStrings}} }
@@ -254,10 +282,10 @@ func (h *{{.TableNameCamel}}Helper) save(record *{{.TableNameTitle}}) (err error
 	return err
 }
 
-func (h *{{.TableNameCamel}}Helper) Delete(recordID int) (bool, error) {
+func (h *{{.TableNameCamel}}Helper) Delete(siteID int, recordID int) (bool, error) {
 	result, err := h.DB.
 		DeleteFrom("{{.TableName}}").
-		Where("{{.TableID}}=$1", recordID).
+		Where("site_id=$1 and {{.TableID}}=$2", siteID, recordID).
 		Exec()
 
 	if err != nil {
@@ -268,11 +296,11 @@ func (h *{{.TableNameCamel}}Helper) Delete(recordID int) (bool, error) {
 }
 
 func (h *{{.TableNameCamel}}Helper) validate(record *{{.TableNameTitle}}) (err error) {
-	validationErrors := h.validator.ValidateStruct(record)
+	validationErrors := h.validator.Struct(record)
 	if validationErrors != nil {
 		errMessage := ""
 		for _, err := range err.(validator.ValidationErrors) {
-			errMessage += err.Kind() + " validation Error on field "+err.Field()
+			errMessage += err.Kind().String() + " validation Error on field "+err.Field()
 		}
 		if errMessage != "" {
 			err = errors.New(errMessage)

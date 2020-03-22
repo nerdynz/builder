@@ -90,27 +90,6 @@ export default {
 </script>
 
 <style lang="scss">
-@import "~public/scss/admin.scss";
-@import "~public/scss/admin-overrides.scss";
-@import "~public/scss/content.scss";
-@import "~public/scss/utility.scss";
-@import 'vue-multiselect/dist/vue-multiselect.min.css';
-@import url('https://fonts.googleapis.com/css?family=Muli:300,400,700,900');
+  @import "~/assets/main.scss";
 
-.nuxt-progress {
-  background-color: $green !important;
-}
-.application {
-  background: $background;
-}
-.main-body {
-  @media (min-width: $tablet) {
-    &.sidebar-open {
-      padding-left: $sidebar-width;
-    }
-  }
-  &.nav-showing {
-    padding-top: 80px;
-  }
-}
 </style>

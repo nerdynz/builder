@@ -32,7 +32,7 @@ func main() {
 		{
 			Name:    "table",
 			Aliases: []string{"t"},
-			Usage:   "Create a new table [tablename] [fieldname:fieldtype]",
+			Usage:   "Create a new table [tablename] [fieldname:fieldtype:fielddefault]",
 			Action: func(c *cli.Context) error {
 				err := dotenv.Load() // load from .env file where scaffold is run
 				if err != nil {
@@ -46,7 +46,7 @@ func main() {
 		{
 			Name:    "fields",
 			Aliases: []string{"f"},
-			Usage:   "Add fields to an existing table [tablename] [fieldname:fieldtype]",
+			Usage:   "Add fields to an existing table [tablename] [fieldname:fieldtype:fielddefault]",
 			Action: func(c *cli.Context) error {
 				err := dotenv.Load() // load from .env file where scaffold is run
 				if err != nil {

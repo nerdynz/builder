@@ -2,12 +2,12 @@ package actions
 
 import (
 	"net/http"
-
+	"github.com/nerdynz/datastore"
 	"github.com/nerdynz/builder/scaffold/server/models"
 	flow "github.com/nerdynz/flow"
 )
 
-func Login(ctx *flow.Context) {
+func Login(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	helper := models.PersonHelper()
 
 	// create a blank person. dont load from request because we need to check their creds are valid
@@ -17,7 +17,7 @@ func Login(ctx *flow.Context) {
 		return
 	}
 
-	sessionInfo, err := ctx.Padlock.LoginReturningInfo(person.Email, person.Password, "person")
+	sessionInfo, err := ctx.Padlock.LoginReturningInfo(person.Email, person.Password)
 	if err != nil {
 		ctx.ErrorJSON(http.StatusUnauthorized, "Failed to login. Incorrect username or password", err)
 		return
@@ -26,7 +26,7 @@ func Login(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, sessionInfo)
 }
 
-func RetrieveLoginUsers(ctx *flow.Context) {
+func RetrieveLoginUsers(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	var people models.People
 	err := ctx.Store.DB.
 		Select("person_id", "email", "name", "picture").
@@ -41,14 +41,14 @@ func RetrieveLoginUsers(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, people)
 }
 
-func Logout(ctx *flow.Context) {
+func Logout(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	ctx.Padlock.Logout()
 	ctx.Redirect("/", http.StatusSeeOther)
 }
 
-func UserDetails(ctx *flow.Context) {
+func UserDetails(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	// create a blank person. dont load from request because we need to check their creds are valid
-	user, err := ctx.Padlock.LoggedInUser()
+	user, _, err := ctx.Padlock.LoggedInUser()
 	if err != nil {
 		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid user details", err)
 		return

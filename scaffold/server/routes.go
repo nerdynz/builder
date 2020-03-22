@@ -1,6 +1,7 @@
 package server
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/go-zoo/bone"
@@ -11,15 +12,31 @@ import (
 	"github.com/nerdynz/router"
 	"github.com/nerdynz/security"
 	"github.com/snabb/sitemap"
+	"github.com/unrolled/render"
 )
 
 var store *datastore.Datastore
 
 func Routes(ds *datastore.Datastore) *bone.Mux {
 	store = ds
-	r := router.New(ds)
+	r := router.New(
+		render.New(render.Options{
+			Layout:     "application",
+			Extensions: []string{".html"},
+			Funcs: []template.FuncMap{
+				HelperFuncs,
+			},
+			// prevent having to rebuild for every template reload... This is an important setting for development speed
+			IsDevelopment:               store.Settings.IsDevelopment(),
+			RequirePartials:             store.Settings.IsDevelopment(),
+			RequireBlocks:               store.Settings.IsDevelopment(),
+			RenderPartialsWithoutPrefix: true,
+		}), ds, &Key{
+			Store: store,
+		},
+	)
 	// r.Mux.Handle("/admin/", http.FileServer(http.Dir("./admin/dist/")))
-	if !store.Settings.ServerIsDEV {
+	if store.Settings.IsProduction() {
 		r.GET("/admin/:a", actions.SPA, security.NoAuth)
 		r.GET("/admin/:a/:a", actions.SPA, security.NoAuth)
 		r.GET("/admin/:a/:a/:a", actions.SPA, security.NoAuth)
@@ -39,7 +56,7 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 
 	r.GET("/", actions.Home, security.NoAuth)
 	r.GET("/home", actions.RedirectHome, security.NoAuth)
-	r.GET("/contact", actions.ContactUs, security.NoAuth)
+	// r.GET("/contact", actions.ContactUs, security.NoAuth)
 
 	r.GET("/kitchen-sink", actions.KitchenSink, security.NoAuth)
 
@@ -73,9 +90,9 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	r.PUT("/:api/v1/person/update/:personID", actions.UpdatePerson, security.Disallow)
 	r.DEL("/:api/v1/person/delete/:personID", actions.DeletePerson, security.Disallow)
 
-	r.POST("/api/v1/upload/crop", actions.CroppedFileUpload, security.Disallow)
-	r.POST("/api/v1/upload/:quality/:type", actions.FileUpload, security.NoAuth)
-	r.POST("/api/v1/upload/:type", actions.FileUpload, security.NoAuth)
+	// r.POST("/api/v1/upload/crop", actions.CroppedFileUpload, security.Disallow)
+	// r.POST("/api/v1/upload/:quality/:type", actions.FileUpload, security.NoAuth)
+	// r.POST("/api/v1/upload/:type", actions.FileUpload, security.NoAuth)
 	// r.GET("/:api/v1/imagemeta/retrieve/:uniqueid", actions.RetrieveImageMeta, security.Disallow)
 
 	r.GET("/sitemap.xml", websitemap, security.NoAuth)
@@ -86,7 +103,7 @@ func Routes(ds *datastore.Datastore) *bone.Mux {
 	return r.Mux
 }
 
-func Schema(ctx *flow.Context) {
+func Schema(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	data := struct {
 		Page   *models.Page
 		Block  *models.Block
@@ -97,7 +114,7 @@ func Schema(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, data)
 }
 
-func robots(ctx *flow.Context) {
+func robots(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	robotsTxt := `User-agent: Teoma
 Disallow: /
 User-agent: twiceler
@@ -130,11 +147,11 @@ User-agent: *
 Disallow: /df9249a6-0d56-11e8-ba89-0ed5f89f718b
 User-agent: *
 Disallow: /kitchen-sink
-Sitemap: ` + ctx.Settings.WebsiteBaseURL + `sitemap.xml`
+Sitemap: ` + ctx.Settings.Get("WEBSITE_BASE_URL") + `sitemap.xml`
 	ctx.Renderer.Text(ctx.W, 200, robotsTxt)
 }
 
-func websitemap(ctx *flow.Context) {
+func websitemap(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	sm := sitemap.New()
 	pages, _ := models.PageHelper().All()
 
@@ -143,7 +160,7 @@ func websitemap(ctx *flow.Context) {
 			continue // skip placeholder
 		}
 		sm.Add(&sitemap.URL{
-			Loc:        ctx.Settings.WebsiteBaseURL + page.Slug + "/",
+			Loc:        ctx.Settings.Get("WEBSITE_BASE_URL") + page.Slug + "/",
 			LastMod:    &page.DateModified,
 			ChangeFreq: sitemap.Weekly,
 		})
@@ -153,7 +170,7 @@ func websitemap(ctx *flow.Context) {
 	sm.WriteTo(ctx.W)
 }
 
-func siteSettings(ctx *flow.Context) {
+func siteSettings(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	topNav, err := models.PageHelper().LoadTopNav()
 	if err != nil {
 		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to load top nav", err)

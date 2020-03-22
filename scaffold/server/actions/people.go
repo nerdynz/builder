@@ -5,16 +5,17 @@ import (
 
 	"github.com/nerdynz/builder/scaffold/server/models"
 
+	"github.com/nerdynz/datastore"
 	flow "github.com/nerdynz/flow"
 )
 
-func NewPerson(ctx *flow.Context) {
+func NewPerson(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	person := personHelper.New()
 	ctx.JSON(http.StatusOK, person)
 }
 
-func CreatePerson(ctx *flow.Context) {
+func CreatePerson(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	person, err := personHelper.FromRequest(ctx.Req)
 	if err != nil {
@@ -29,9 +30,9 @@ func CreatePerson(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, person)
 }
 
-func RetrievePerson(ctx *flow.Context) {
+func RetrievePerson(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	if ctx.URLParam("personID") == "" {
-		RetrievePeople(ctx)
+		RetrievePeople(w, req, ctx, store)
 		return
 	}
 
@@ -52,7 +53,7 @@ func RetrievePerson(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, person)
 }
 
-func RetrievePeople(ctx *flow.Context) {
+func RetrievePeople(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	people, err := personHelper.All()
 
@@ -64,7 +65,7 @@ func RetrievePeople(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, people)
 }
 
-func PagedPeople(ctx *flow.Context) {
+func PagedPeople(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	pageNum := ctx.URLIntParamWithDefault("pagenum", 1)
 	limit := ctx.URLIntParamWithDefault("limit", 10)
@@ -79,7 +80,7 @@ func PagedPeople(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, data)
 }
 
-func UpdatePerson(ctx *flow.Context) {
+func UpdatePerson(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	person, err := personHelper.FromRequest(ctx.Req)
 	if err != nil {
@@ -98,7 +99,7 @@ func UpdatePerson(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, person)
 }
 
-func DeletePerson(ctx *flow.Context) {
+func DeletePerson(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	personHelper := models.PersonHelper()
 	//get the personID from the request
 	personID := ctx.URLIntParamWithDefault("personID", -1)

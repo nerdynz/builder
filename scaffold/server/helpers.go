@@ -15,7 +15,7 @@ import (
 
 	"github.com/nerdynz/flow"
 
-	dat "github.com/nerdynz/dat"
+	dat "github.com/nerdynz/dat/dat"
 )
 
 var HelperFuncs = template.FuncMap{
@@ -174,8 +174,8 @@ func stylesheetTag(names ...string) template.HTML {
 
 func imagePath(n interface{}) string {
 	name := n.(string)
-	if store.Settings.ServerIsDEV && strings.HasPrefix(name, "/attachments") {
-		return strings.Replace(name, "/attachments/", "https://cdn.nerdy.co.nz/attachments/"+store.Settings.Sitename+"/", 1)
+	if store.Settings.IsDevelopment() && strings.HasPrefix(name, "/attachments") {
+		return strings.Replace(name, "/attachments/", "https://cdn.nerdy.co.nz/attachments/"+store.Settings.Get("SITE_NAME")+"/", 1)
 		// return "https://cdn.nerdy.co.nz/attachments/" + store.Settings.Sitename + "/" + name
 	}
 	if strings.HasPrefix(name, "/attachments") {
@@ -247,45 +247,6 @@ func isBlank(str string) bool {
 
 func isNotBlank(str string) bool {
 	return !isBlank(str)
-}
-
-type Page struct {
-	PageID     int64        `db:"page_id"`
-	Title      string       `db:"title"`
-	Body       string       `db:"body"`
-	Slug       string       `db:"slug"`
-	Template   string       `db:"template"`
-	CreatedAt  dat.NullTime `db:"created_at"`
-	UpdatedAt  dat.NullTime `db:"updated_at"`
-	Textblocks []*Textblock
-}
-
-type NavItem struct {
-	Title string `db:"title"`
-	Slug  string `db:"slug"`
-}
-
-func (navItem *NavItem) getURL() string {
-	return ""
-}
-
-type Textblock struct {
-	TextblockID int64        `db:"textblock_id"`
-	Code        string       `db:"code"`
-	Body        string       `db:"body"`
-	CreatedAt   dat.NullTime `db:"created_at"`
-	UpdatedAt   dat.NullTime `db:"updated_at"`
-	PageID      int64        `db:"page_id"`
-}
-
-func getHTMLFromTextblock(page *Page, code string) string {
-	var body string
-	for _, tb := range page.Textblocks {
-		if tb.Code == code {
-			body = tb.Body
-		}
-	}
-	return body
 }
 
 func formatDate(t time.Time, layout string) string {

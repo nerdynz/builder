@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	dat "github.com/nerdynz/dat"
+	dat "github.com/nerdynz/dat/dat"
 	runner "github.com/nerdynz/dat/sqlx-runner"
 
 	"github.com/jaybeecave/render"
@@ -132,8 +132,9 @@ func (viewBucket *viewBucket) addFieldDataFromContext(c *cli.Context) {
 		if strings.Contains(arg, ":") {
 			strSlice := strings.Split(arg, ":")
 			field := Field{
-				FieldName: strSlice[0],
-				FieldType: strSlice[1],
+				FieldName:    strSlice[0],
+				FieldType:    strSlice[1],
+				FieldDefault: strSlice[2],
 			}
 			fields = append(fields, field)
 		}

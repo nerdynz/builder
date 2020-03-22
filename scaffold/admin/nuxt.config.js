@@ -19,6 +19,10 @@ export default {
     ]
   },
   /*
+  ** Customize the progress-bar color
+  */
+  loading: { color: '#fff' },
+  /*
   ** Global CSS
   */
   css: [
@@ -38,8 +42,12 @@ export default {
   modules: [
     'specky-service',
     // Doc: https://buefy.github.io/#/documentation
-    'nuxt-buefy',
     // Doc: https://axios.nuxtjs.org/usage
+    ['nuxt-buefy', {
+      defaultIconPack: 'far',
+      css: false,
+      materialDesignIcons: false,
+    }],
     '@nuxtjs/axios',
     '@nuxtjs/proxy',
     '@nuxtjs/pwa',
@@ -57,28 +65,8 @@ export default {
     ** Run ESLint on save
     */
     extend (config, ctx) {
-      config.resolve.alias.bulma = path.resolve(projectRoot, 'public/scss/bulma')
-      config.resolve.alias.public = path.resolve(projectRoot, 'public')
-      config.resolve.alias['~bulma'] = path.resolve(projectRoot, 'public/scss/bulma')
-      config.resolve.alias['~bulma/sass'] = path.resolve(projectRoot, 'public/scss/bulma')
       config.resolve.alias['~public'] = path.resolve(projectRoot, 'public')
-      if (ctx.isDev && ctx.isClient) {
-        config.module.rules.push({
-          enforce: 'pre',
-          test: /\.(js|vue)$/,
-          loader: 'eslint-loader',
-          exclude: /(node_modules)/
-        })
-      }
-    },
-    plugins: [
-      new webpack.ProvidePlugin({
-        $: 'jquery',
-        jquery: 'jquery',
-        'window.jQuery': 'jquery',
-        jQuery: 'jquery'
-      })
-    ]
+
   },
   axios: {
     browserBaseURL: '/'

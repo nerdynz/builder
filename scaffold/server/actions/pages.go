@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nerdynz/datastore"
 	flow "github.com/nerdynz/flow"
 	"github.com/nerdynz/builder/scaffold/server/models"
 )
@@ -45,11 +46,11 @@ func loadPageExtras(ctx *flow.Context) {
 	ctx.Add("Settings", settings)
 }
 
-func RedirectHome(ctx *flow.Context) {
+func RedirectHome(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	ctx.Redirect("/", http.StatusMovedPermanently)
 }
 
-func Analytics(ctx *flow.Context) {
+func Analytics(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	helper := models.AnalyticsHelper()
 	a := helper.New()
 
@@ -95,7 +96,7 @@ func Analytics(ctx *flow.Context) {
 	ctx.Text(200, "done")
 }
 
-func Fix(ctx *flow.Context) {
+func Fix(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	as, _ := models.AnalyticsHelper().All()
 	for _, a := range as {
 		a.SetUaInfo()
@@ -103,18 +104,18 @@ func Fix(ctx *flow.Context) {
 	models.AnalyticsHelper().SaveMany(as)
 }
 
-func Home(ctx *flow.Context) {
+func Home(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	loadPageExtras(ctx)
 	page, err := models.PageHelper().LoadBySpecialPage("home")
 	renderPage(ctx, page, err)
 }
 
-func KitchenSink(ctx *flow.Context) {
+func KitchenSink(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	page, err := models.PageHelper().LoadKitchenSink()
 	renderPage(ctx, page, err)
 }
 
-func RenderPageBySlug(ctx *flow.Context) {
+func RenderPageBySlug(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	loadPageExtras(ctx)
 	pageSlug := ctx.URLParam("slug")
 	if pageSlug == "favicon.ico" {
@@ -125,19 +126,19 @@ func RenderPageBySlug(ctx *flow.Context) {
 	renderPage(ctx, page, err)
 }
 
-func ContactUs(ctx *flow.Context) {
-	loadPageExtras(ctx)
-	form, err := models.FormHelper().LoadFullForm("Contact")
-	if err != nil {
-		ctx.ErrorHTML(http.StatusInternalServerError, "Failed to Load contact Form Details", err)
-		return
-	}
-	ctx.Add("Form", form)
-	// ctx.JSON(200, ctx.Bucket)
-	// return
-	page, err := models.PageHelper().LoadBySpecialPage("contact")
-	renderPage(ctx, page, err)
-}
+// func ContactUs(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+// 	loadPageExtras(ctx)
+// 	form, err := models.FormHelper().LoadFullForm("Contact")
+// 	if err != nil {
+// 		ctx.ErrorHTML(http.StatusInternalServerError, "Failed to Load contact Form Details", err)
+// 		return
+// 	}
+// 	ctx.Add("Form", form)
+// 	// ctx.JSON(200, ctx.Bucket)
+// 	// return
+// 	page, err := models.PageHelper().LoadBySpecialPage("contact")
+// 	renderPage(ctx, page, err)
+// }
 
 func renderPage(ctx *flow.Context, page *models.Page, err error) {
 	if err != nil {
@@ -183,7 +184,7 @@ func renderPage(ctx *flow.Context, page *models.Page, err error) {
 	ctx.HTML("default", http.StatusOK)
 }
 
-// func EditPage(ctx *flow.Context) {
+// func EditPage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 // 	pageID, err := ctx.URLIntParam("pageID")
 // 	if err != nil || pageID == 0 {
 // 		ctx.ErrorJSON(http.StatusInternalServerError, "invalid pageID")
@@ -207,13 +208,13 @@ func renderPage(ctx *flow.Context, page *models.Page, err error) {
 // }
 
 // RESTFUL METHODS
-func NewPage(ctx *flow.Context) {
+func NewPage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	pageHelper := models.PageHelper()
 	page := pageHelper.New()
 	ctx.JSON(http.StatusOK, page)
 }
 
-func CreatePage(ctx *flow.Context) {
+func CreatePage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	pageHelper := models.PageHelper()
 	page, err := pageHelper.NewFromRequest(ctx.Req)
 	if err != nil {
@@ -228,9 +229,9 @@ func CreatePage(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, page)
 }
 
-func RetrievePage(ctx *flow.Context) {
+func RetrievePage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	if ctx.URLParam("pageID") == "" {
-		RetrievePages(ctx)
+		RetrievePages(w, req, ctx, store)
 		return
 	}
 
@@ -257,7 +258,7 @@ func RetrievePage(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, page)
 }
 
-func RetrievePageBySlug(ctx *flow.Context) {
+func RetrievePageBySlug(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	slug := ctx.URLParam("slug")
 	if slug == "" {
 		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Page ID", nil)
@@ -280,7 +281,7 @@ func RetrievePageBySlug(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, page)
 }
 
-func RetrievePages(ctx *flow.Context) {
+func RetrievePages(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	pageHelper := models.PageHelper()
 	pages, err := pageHelper.All()
 
@@ -292,7 +293,7 @@ func RetrievePages(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, pages)
 }
 
-func UpdatePage(ctx *flow.Context) {
+func UpdatePage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	pageHelper := models.PageHelper()
 	page, err := pageHelper.LoadAndUpdateFromRequest(ctx.Req)
 	if err != nil {
@@ -316,7 +317,7 @@ func UpdatePage(ctx *flow.Context) {
 // 	SortPosition int `json:"SortPosition"`
 // }
 
-func ChangePageSort(ctx *flow.Context) {
+func ChangePageSort(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	var sort models.Pages
 	decoder := json.NewDecoder(ctx.Req.Body)
 	err := decoder.Decode(&sort)
@@ -334,7 +335,7 @@ func ChangePageSort(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, sort)
 }
 
-func DeletePage(ctx *flow.Context) {
+func DeletePage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	pageHelper := models.PageHelper()
 	//get the pageID from the request
 	pageID, err := ctx.URLIntParam("pageID")
@@ -351,11 +352,11 @@ func DeletePage(ctx *flow.Context) {
 	ctx.JSON(http.StatusOK, isDeleted)
 }
 
-func TestMessage(ctx *flow.Context) {
+func TestMessage(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 
 }
 
-func SPA(ctx *flow.Context) {
+func SPA(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	ctx.W.Header().Add("content-type", "text/html")
 	file, err := ioutil.ReadFile("admin/dist/index.html")
 	if err != nil {
@@ -365,7 +366,7 @@ func SPA(ctx *flow.Context) {
 	ctx.Renderer.Data(ctx.W, 200, file)
 }
 
-func FirebaseMessaging(ctx *flow.Context) {
+func FirebaseMessaging(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
 	ctx.W.Header().Add("content-type", "application/javascript")
 	file, err := ioutil.ReadFile("public/js/firebase-messaging-sw.js")
 	if err != nil {

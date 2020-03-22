@@ -55,9 +55,16 @@ func (slice descriptions) Swap(i int, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
 }
 
+type Child struct {
+	CamelName  string
+	TableName  string
+	PluralName string
+}
+
 type Field struct {
-	FieldName string
-	FieldType string
+	FieldName    string
+	FieldType    string
+	FieldDefault string
 }
 
 type Fields []Field
@@ -167,8 +174,8 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 
 	// populate variables
 	tableName := bucket.getStr("TableName")
-	tableNameTitle := snaker.SnakeToCamel(tableName)
-	tableNameCamel := camelCase(tableNameTitle)
+	tableNameTitle := snaker.SnakeToCamel(tableName) // this actualy gives us a TitleCase result
+	tableNameCamel := snaker.SnakeToCamelLower(tableName)
 	tableNameLower := strings.ToLower(tableName)
 	tableID := tableName + "_id"
 	tnJnt := strings.Join(strings.Split(tableNameTitle, "_"), " ")
@@ -183,12 +190,12 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
 	bucket.add("TableID", tableID)
 	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
-	bucket.add("TableIDCamel", camelCase(snaker.SnakeToCamel(tableID)))
-	bucket.add("TableIDCamelWithRecord", "record."+camelCase(snaker.SnakeToCamel(tableID)))
+	bucket.add("TableIDCamel", snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
+	bucket.add("TableIDCamelWithRecord", "record."+snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
-	err := db.Select("column_name, data_type, is_nullable").
+	err := db.Select("column_name, data_type, is_nullable, table_name").
 		From("information_schema.columns").
 		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName).
 		QueryStructs(&columns)
@@ -214,6 +221,27 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	bucket.add("ColumnsDBStrings", template.HTML(colsDBConcat))
 	bucket.add("ColumnsRecordPrefixedStrings", colsRecordPrefixedConcat)
 
+	columns = []*ColumnInfo{}
+	err = db.Select("column_name, data_type, is_nullable, table_name").
+		From("information_schema.columns").
+		Where("table_schema = $1 and column_name = $2 and column_name <> 'tsv' and table_name <> $3", "public", tableID, tableName).
+		QueryStructs(&columns)
+	if err != nil {
+		return cli.NewExitError("error 15: "+err.Error(), 1)
+	}
+	childrenTableNames := make([]Child, 0)
+	for _, col := range columns {
+		colName := snaker.SnakeToCamel(col.TableName)
+		colNamePlural := inflection.Plural(colName)
+		childrenTableNames = append(childrenTableNames, Child{
+			PluralName: colNamePlural,
+			TableName:  colName,
+			CamelName:  snaker.SnakeToCamelLower(colName),
+		})
+	}
+
+	bucket.add("Children", childrenTableNames)
+
 	folderPath := strings.Replace(path, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
@@ -221,7 +249,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	}
 	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
-	ext = strings.Replace(ext, ":TableNameCamelID", camelCase(snaker.SnakeToCamel(tableID)), -1)
+	ext = strings.Replace(ext, ":TableNameCamelID", snaker.SnakeToCamelLower(tableID), -1)
 	fullpath := folderPath + ext
 
 	fo, err := os.Create(fullpath)
@@ -264,6 +292,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 
 type ColumnInfo struct {
 	ColumnName string `db:"column_name"`
+	TableName  string `db:"table_name"`
 	DataType   string `db:"data_type"`
 	IsNullable string `db:"is_nullable"`
 }
@@ -306,7 +335,7 @@ func (colInfo *ColumnInfo) ColumnNameSplitTitle() string {
 }
 
 func (colInfo *ColumnInfo) ColumnNameCamel() string {
-	return camelCase(colInfo.ColumnNameTitle())
+	return snaker.SnakeToCamelLower(colInfo.ColumnNameTitle())
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
@@ -387,12 +416,12 @@ func migrationFromTemplate(r *render.Render, templateName string, file *file.Fil
 	return nil
 }
 
-func camelCase(str string) string {
-	letters := strings.Split(str, "")
-	letters[0] = strings.ToLower(letters[0])
-	str = strings.Join(letters, "")
-	return str
-}
+// func camelCase(str string) string {
+// 	letters := strings.Split(str, "")
+// 	letters[0] = strings.ToLower(letters[0])
+// 	str = strings.Join(letters, "")
+// 	return str
+// }
 
 func visit(path string, name string, replacement string, fi os.FileInfo, err error) error {
 	if err != nil {
