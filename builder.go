@@ -178,6 +178,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	tableNameCamel := snaker.SnakeToCamelLower(tableName)
 	tableNameLower := strings.ToLower(tableName)
 	tableID := tableName + "_id"
+	tableULID := tableName + "_ulid"
 	tnJnt := strings.Join(strings.Split(tableNameTitle, "_"), " ")
 
 	bucket.add("TableNameSpaces", tnJnt)
@@ -189,6 +190,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	bucket.add("TableNamePluralCamel", inflection.Plural(tableNameCamel))
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
 	bucket.add("TableID", tableID)
+	bucket.add("TableULID", tableULID)
 	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
 	bucket.add("TableIDCamel", snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
 	bucket.add("TableIDCamelWithRecord", "record."+snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
@@ -224,7 +226,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 	columns = []*ColumnInfo{}
 	err = db.Select("column_name, data_type, is_nullable, table_name").
 		From("information_schema.columns").
-		Where("table_schema = $1 and column_name = $2 and column_name <> 'tsv' and table_name <> $3", "public", tableID, tableName).
+		Where("table_schema = $1 and (column_name = $2 or column_name = $3) and column_name <> 'tsv' and table_name <> $4", "public", tableID, tableULID, tableName).
 		QueryStructs(&columns)
 	if err != nil {
 		return cli.NewExitError("error 15: "+err.Error(), 1)
@@ -327,7 +329,9 @@ func (colInfo *ColumnInfo) ColumnNameTitle() string {
 	if colInfo.ColumnName == "ulid" {
 		return "ULID"
 	}
-	return snaker.SnakeToCamel(colInfo.ColumnName)
+	s := snaker.SnakeToCamel(colInfo.ColumnName)
+	s = strings.Replace(s, "Ulid", "ULID", -1)
+	return s
 }
 
 func (colInfo *ColumnInfo) ColumnNameSplitTitle() string {
@@ -339,7 +343,9 @@ func (colInfo *ColumnInfo) ColumnNameCamel() string {
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
-	// log.Printf("datatype: %s", colInfo.DataType)
+	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+	// 	return "ULID"
+	// }
 	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
 		return "string"
 	}
