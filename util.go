@@ -14,7 +14,6 @@ import (
 	runner "github.com/nerdynz/dat/sqlx-runner"
 
 	"github.com/jaybeecave/render"
-	"github.com/urfave/cli"
 )
 
 func getRenderer() *render.Render {
@@ -117,27 +116,4 @@ func (viewBucket *viewBucket) getStr(key string) string {
 		panic(err)
 	}
 	return val
-}
-
-func (viewBucket *viewBucket) addFieldDataFromContext(c *cli.Context) {
-	args := c.Args()
-	// log.Printf("hi %s", args)
-	viewBucket.add("TableName", args.First())
-
-	fields := Fields{}
-	for _, arg := range args {
-		if args.First() == arg {
-			continue // we dont care about the first arg as its the TableName
-		}
-		if strings.Contains(arg, ":") {
-			strSlice := strings.Split(arg, ":")
-			field := Field{
-				FieldName:    strSlice[0],
-				FieldType:    strSlice[1],
-				FieldDefault: strSlice[2],
-			}
-			fields = append(fields, field)
-		}
-	}
-	viewBucket.add("Fields", fields)
 }

@@ -4,6 +4,9 @@ go 1.14
 
 require (
 	github.com/avct/uasurfer v0.0.0-20191028135549-26b5daa857f1
+	github.com/charmbracelet/bubbles v0.9.0
+	github.com/charmbracelet/bubbletea v0.15.0
+	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/cznic/ql v1.2.0 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
@@ -13,7 +16,7 @@ require (
 	github.com/gosimple/slug v1.9.0
 	github.com/jaybeecave/render v0.0.0-20161207091657-7e36a622df99
 	github.com/jinzhu/inflection v1.0.0
-	github.com/joho/godotenv v1.3.0
+	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/kataras/go-errors v0.0.3
 	github.com/leekchan/accounting v0.0.0-20191218023648-17a4ce5f94d4
 	github.com/leodido/go-urn v1.2.0 // indirect

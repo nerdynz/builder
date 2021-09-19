@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"go/build"
 	"html/template"
 	"net/http"
 	"os/exec"
@@ -24,7 +22,6 @@ import (
 	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	"github.com/urfave/cli"
 	_ "gopkg.in/mattes/migrate.v1/driver/postgres"
 	"gopkg.in/mattes/migrate.v1/file"
 	"gopkg.in/mattes/migrate.v1/migrate"
@@ -69,61 +66,48 @@ type Field struct {
 
 type Fields []Field
 
-func createTable(c *cli.Context, r *render.Render, db *runner.DB) error {
-	// setup
+func createTable(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
 	bucket := newViewBucket()
-	args := c.Args()
 
-	if !args.Present() {
-		// no args
-		return cli.NewExitError("ERROR: No tablename defined", 1)
-	}
-
-	// add variables for template
-	bucket.addFieldDataFromContext(c)
+	bucket.add("TableName", tableName)
+	bucket.add("Fields", fields)
 
 	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations", "create_"+bucket.getStr("TableName"))
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	err = migrationFromTemplate(r, "create-table", file.UpFile, bucket)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	err = migrationFromTemplate(r, "drop-table", file.DownFile, bucket)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	return nil
 }
 
-func addFields(c *cli.Context, r *render.Render, db *runner.DB) error {
-	// setup
+func addFields(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
 	bucket := newViewBucket()
-	if !c.Args().Present() {
-		// no args
-		return cli.NewExitError("ERROR: No tablename defined", 1)
-	}
-
-	// add variables for template
-	bucket.addFieldDataFromContext(c)
+	bucket.add("TableName", tableName)
+	bucket.add("Fields", fields)
 
 	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations", "fields_"+bucket.getStr("TableName"))
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	err = migrationFromTemplate(r, "add-fields", file.UpFile, bucket)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	err = migrationFromTemplate(r, "remove-fields", file.DownFile, bucket)
 	if err != nil {
-		return cli.NewExitError(err.Error(), 1)
+		return err
 	}
 	return nil
 }
 
-func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
+func doMigration(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
 	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations")
 	finalError := ""
 	if ok {
@@ -132,48 +116,42 @@ func doMigration(c *cli.Context, r *render.Render, db *runner.DB) error {
 		for _, err := range errs {
 			finalError += err.Error() + "\n"
 		}
-		return errors.New(finalError)
+
 	}
 	return nil
 }
 
-func createModel(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-model", "./server/models/", ":TableNameCamel.go.tmp")
+func createModel(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, fields, r, db, "create-model", "./server/models/", ":TableNameCamel.go.tmp")
 }
 
-func createRest(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-rest", "./server/actions/", ":TableNameCamelPlural.go.tmp")
+func createRest(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, fields, r, db, "create-rest", "./server/actions/", ":TableNameCamelPlural.go.tmp")
 }
 
-func createList(c *cli.Context, r *render.Render, db *runner.DB) error {
-	err := createSomethingNoDiff(c, r, db, "create-list-index", "./admin/pages/:TableNameCamelPlural/", "index.vue", true)
+func createList(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+	err := createSomethingNoDiff(tableName, fields, r, db, "create-list-index", "./admin/pages/:TableNameCamelPlural/", "index.vue", true)
 	if err != nil {
 		return err
 	}
-	return createSomething(c, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
+	return createSomething(tableName, fields, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
 }
 
-func createEdit(c *cli.Context, r *render.Render, db *runner.DB) error {
-	return createSomething(c, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
+func createEdit(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, fields, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
 }
 
-func createSomething(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
-	return createSomethingNoDiff(c, r, db, tmpl, path, ext, false)
+func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
+	return createSomethingNoDiff(tableName, fields, r, db, tmpl, path, ext, false)
 }
 
-func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl string, path string, ext string, skipDiff bool) error {
+func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, skipDiff bool) error {
 	bucket := newViewBucket()
-	args := c.Args()
-
-	if !args.Present() {
-		// no args
-		return cli.NewExitError("ERROR: No tablename defined", 1)
-	}
-	// add variables for template
-	bucket.addFieldDataFromContext(c)
+	bucket.add("TableName", tableName)
+	bucket.add("Fields", fields)
 
 	// populate variables
-	tableName := bucket.getStr("TableName")
+	// tableName := bucket.getStr("TableName")
 	tableNameTitle := snaker.SnakeToCamel(tableName) // this actualy gives us a TitleCase result
 	tableNameCamel := snaker.SnakeToCamelLower(tableName)
 	tableNameLower := strings.ToLower(tableName)
@@ -202,7 +180,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName).
 		QueryStructs(&columns)
 	if err != nil {
-		return cli.NewExitError("error 10: "+err.Error(), 1)
+		return err
 	}
 
 	colsDBConcat := `"`
@@ -229,7 +207,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 		Where("table_schema = $1 and (column_name = $2 or column_name = $3) and column_name <> 'tsv' and table_name <> $4", "public", tableID, tableULID, tableName).
 		QueryStructs(&columns)
 	if err != nil {
-		return cli.NewExitError("error 15: "+err.Error(), 1)
+		return err
 	}
 	childrenTableNames := make([]Child, 0)
 	for _, col := range columns {
@@ -261,24 +239,25 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 
 	template := r.TemplateLookup(tmpl)
 	if template == nil {
-		return cli.NewExitError("error 42: template not found", 1)
+		return err
 	}
 	wr := bufio.NewWriter(fo)
 	err = template.Execute(wr, bucket.Data)
 	if err != nil {
-		return cli.NewExitError("error 20: "+err.Error(), 1)
+		return err
 	}
 	wr.Flush()
 	// err = ioutil.WriteFile("./server/models/migrations/"+tableName+".go", buffer.Bytes(), os.ModePerm)
 	if err != nil {
-		return cli.NewExitError("error 20: "+err.Error(), 1)
+		return err
 	}
 
 	if err := fo.Close(); err != nil {
-		return cli.NewExitError("error 30: "+err.Error(), 1)
+		return err
 	}
 	fullpathNoTemp := strings.Replace(fullpath, ".tmp", "", 1)
-	skip := c.Bool("skip") || skipDiff
+	skip := true
+	// skip := c.Bool("skip") || skipDiff
 	if !skip {
 		diffCommand := os.Getenv("DIFF_COMMAND")
 		if diffCommand == "" {
@@ -286,7 +265,7 @@ func createSomethingNoDiff(c *cli.Context, r *render.Render, db *runner.DB, tmpl
 		}
 		err = exec.Command(diffCommand, fullpath, fullpathNoTemp).Run()
 		if err != nil {
-			return cli.NewExitError("error 40: "+err.Error(), 1)
+			return err
 		}
 	}
 	return nil
@@ -492,26 +471,26 @@ func walkFiles(path string, name, replacement string) error {
 	return nil
 }
 
-func createProject(c *cli.Context, r *render.Render) error {
-	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/builder/scaffold"
-	projectName := c.Args().First()
-	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
-	projectReplace := c.Args().Get(1)
-	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
-		return errors.New("Did you specify a project name and path?")
-	}
-	fmt.Println("copying " + fullpath + " to " + outpath)
-	err := Copy(fullpath, outpath)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "symlink") {
-			fmt.Println(err.Error())
-		} else {
-			return err
-		}
-	}
-	err = walkFiles(outpath, projectName, projectReplace)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// func createProject(tableName string, fields Fields, r *render.Render) error {
+// 	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/builder/scaffold"
+// 	projectName := c.Args().First()
+// 	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
+// 	projectReplace := c.Args().Get(1)
+// 	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
+// 		return ("Did you specify a project name and
+// 	}
+// 	fmt.Println("copying " + fullpath + " to " + outpath)
+// 	err := Copy(fullpath, outpath)
+// 	if err != nil {
+// 		if strings.HasPrefix(err.Error(), "symlink") {
+// 			fmt.Println(err.Error())
+// 		} else {
+// 			return err
+// 		}
+// 	}
+// 	err = walkFiles(outpath, projectName, projectReplace)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
