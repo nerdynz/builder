@@ -69,8 +69,13 @@ func fcopy(src, dest string, info os.FileInfo) error {
 // with scanning contents inside the directory
 // and pass everything to "copy" recursively.
 func dcopy(srcdir, destdir string, info os.FileInfo) error {
-
 	originalMode := info.Mode()
+	if info.Name() == ".git" {
+		return nil
+	}
+	if info.Name() == "node_modules" {
+		return nil
+	}
 
 	// Make dest dir with 0755 so that everything writable.
 	if err := os.MkdirAll(destdir, tmpPermissionForDirectory); err != nil {

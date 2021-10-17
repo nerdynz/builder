@@ -3,11 +3,19 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	dotenv "github.com/joho/godotenv"
+	errors "github.com/kataras/go-errors"
+	"github.com/sirupsen/logrus"
+)
+
+const (
+	maxWidth = 40
 )
 
 const BREAK = "\n"
@@ -23,6 +31,16 @@ var headingStyle = lipgloss.NewStyle().
 	PaddingBottom(1).
 	Width(50)
 
+var subheadingStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#FAFAFA")).
+	Background(lipgloss.Color("#282D3F")).
+	MarginTop(1).
+	PaddingTop(1).
+	PaddingLeft(1).
+	PaddingBottom(1).
+	Width(50)
+
 var selectionStyle = lipgloss.NewStyle().
 	Bold(false).
 	Foreground(lipgloss.Color("#1d313b")).
@@ -32,37 +50,104 @@ var selectionStyle = lipgloss.NewStyle().
 	Width(50)
 
 type action int
-type itemKey string
-type viewType int
+type viewItemKey string
+type viewType string
 type itemType int
 
 const (
 	NO_ACTION action = iota
+	SCAFFOLD_PROJECT
 	CREATE_TABLE
+	ADD_FIELDS
+	GENERATE_MODEL
+	GENERATE_REST
+	GENERATE_EDIT
+	GENERATE_LIST
+	GENERATE_SEARCH
+	GENERATE_MIGRATION
+	MIGRATE
 )
 
 const (
-	SINGLE_CHOICE viewType = iota
-	MULTI_CHOICE
-	NAVIGATION_CHOICE
-	INPUT
-	END
+	SINGLE_CHOICE     viewType = "SINGLE_CHOICE"
+	MULTI_CHOICE      viewType = "MULTI_CHOICE"
+	NAVIGATION_CHOICE viewType = "NAVIGATION_CHOICE"
+	PRIORITY_CHOICE   viewType = "PRIORITY_CHOICE"
+	INPUT             viewType = "INPUT"
+	PROGRESS          viewType = "PROGRESS"
+	END               viewType = "END"
 )
 
 const (
 	STANDARD itemType = iota
 	HEADING
 	CHOICE
+	PRIORITY
 )
 
-type model struct {
-	items        map[itemKey]*view // items on the to-do list
-	cursor       int               // which to-do list item our cursor is pointing at
-	selectedItem itemKey
+/// TODO break this down in to composeable peices based on item type
+type view struct {
+	items     []*item
+	loadItems func() []*item
+	viewType  viewType
+	viewKey   viewItemKey
+	ref       interface{}
+	question  string
 
-	input      textinput.Model
-	selection  string
-	selections map[int]string
+	// changable pieces
+	// selections map[int]string
+	// selection  string
+	// inputModel textinput.Model
+	process func(*model)
+}
+
+type state struct {
+	actions []action
+	// PROJECT
+	projectName string
+	projectPath string
+
+	// DATABASE
+	tableName       string
+	tables          []string
+	fieldNames      []string
+	fieldTypes      []string
+	fieldPriorities []string
+}
+
+func (s *state) fields() []Field {
+	fields := make([]Field, 0)
+	for i := range localstate.fieldNames {
+		fieldType := ""
+		fieldPriority := ""
+		if len(localstate.fieldTypes) > i {
+			fieldType = localstate.fieldTypes[i]
+		}
+		if len(localstate.fieldPriorities) > i {
+			fieldPriority = localstate.fieldPriorities[i]
+		}
+
+		field := Field{
+			FieldName:     localstate.fieldNames[i],
+			FieldType:     fieldType,
+			FieldPriority: fieldPriority,
+			FieldDefault:  "",
+		}
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+type model struct {
+	items        map[viewItemKey]*view // items on the to-do list
+	cursor       int                   // which to-do list item our cursor is pointing at
+	selectedItem viewItemKey
+
+	input              textinput.Model
+	progress           progress.Model
+	selection          string
+	selections         map[int]string
+	prioritySelections map[int]string
 
 	err error
 
@@ -90,12 +175,23 @@ type item struct {
 	style    lipgloss.Style
 }
 
+type tickMsg time.Time
+type errMsg error
+
+var localstate *state
+
 func (m *model) currentItem() *view {
 	// logrus.Info("m.selectedItem", m.selectedItem)
 	return m.items[m.selectedItem]
 }
 
-func (m *model) changeView(itemKey itemKey, action action) (tea.Model, tea.Cmd) {
+func (m *model) changeView(itemKey viewItemKey, action action) (tea.Model, tea.Cmd) {
+	_, ok := m.items[itemKey]
+	if !ok {
+		m.err = errors.New("item doesn't exist " + string(itemKey) + " doesnt exist")
+		m.changeView("error", NO_ACTION)
+	}
+	m.progress.SetPercent(0)
 	oldItem := m.currentItem()
 	if oldItem != nil && oldItem.process != nil {
 		oldItem.process(m)
@@ -107,70 +203,27 @@ func (m *model) changeView(itemKey itemKey, action action) (tea.Model, tea.Cmd) 
 	}
 	m.cursor = 1
 	newItem := m.currentItem()
-	if newItem.viewType == INPUT {
+	if newItem.viewType == END {
+		// maybe later
+	} else if newItem.viewType == INPUT {
 		// current.input.
 		m.input.SetValue("")
 		m.input.SetCursorMode(textinput.CursorBlink)
 		m.input.Focus()
 		return m, textinput.Blink
-	} else if newItem.viewType == MULTI_CHOICE || newItem.viewType == NAVIGATION_CHOICE || newItem.viewType == SINGLE_CHOICE {
+	} else if newItem.viewType == MULTI_CHOICE || newItem.viewType == NAVIGATION_CHOICE || newItem.viewType == SINGLE_CHOICE || newItem.viewType == PRIORITY_CHOICE {
 		m.currentItem().items = m.currentItem().loadItems()
-	} else if newItem.viewType == END {
-		err := run()
-		if err != nil {
-			m.err = err
-			return m, nil
-		}
-		return m, tea.Quit
+	} else if newItem.viewType == PROGRESS {
+		go func() {
+			err := run()
+			if err != nil {
+				m.err = err
+				m.changeView("error", NO_ACTION)
+			}
+		}()
+		return m, nil
 	}
 	return m, nil
-}
-
-/// TODO break this down in to composeable peices based on item type
-type view struct {
-	items     []*item
-	loadItems func() []*item
-	viewType  viewType
-	viewKey   itemKey
-	ref       interface{}
-	question  string
-
-	// changable pieces
-	// selections map[int]string
-	// selection  string
-	// inputModel textinput.Model
-	process func(*model)
-}
-
-type state struct {
-	actions    []action
-	tableName  string
-	fieldNames []string
-	fieldTypes []string
-}
-
-func (s *state) fields() []Field {
-	fields := make([]Field, 0)
-	for i, _ := range localstate.fieldNames {
-		field := Field{
-			FieldName:    localstate.fieldNames[i],
-			FieldType:    localstate.fieldTypes[i],
-			FieldDefault: "",
-		}
-		fields = append(fields, field)
-	}
-	return fields
-}
-
-var localstate *state
-
-func init() {
-	localstate = &state{
-		actions:    make([]action, 0),
-		tableName:  "",
-		fieldNames: make([]string, 0),
-		fieldTypes: make([]string, 0),
-	}
 }
 
 // have different view types that resolve the action differently based on a view type e.g. choices are an input and have a default next key
@@ -183,36 +236,57 @@ func init() {
 
 func initialModel() *model {
 	model := &model{
-		items: map[itemKey]*view{
+		items: map[viewItemKey]*view{
 			"home": {
 				loadItems: func() []*item {
-					return []*item{
+					items := []*item{
 						{text: "Choices choices", itemType: HEADING},
-						{text: "Make database changes", key: "database"},
-						{text: "Generate REST & UI templates"},
+						{text: "Create New Project", key: "enterProjectName", action: SCAFFOLD_PROJECT},
+					}
+
+					if isEnvPresent {
+						items = append(items, &item{text: "Make database changes", key: "database"})
+						items = append(items, &item{text: "Generate REST & UI templates", key: "alt"})
+						items = append(items, &item{text: "Create Search", key: "selectTableForSearch"})
+					}
+
+					return items
+					//Enter key : "enterTableName"
+				},
+				viewType: NAVIGATION_CHOICE,
+			},
+			"error": {
+				viewType: END,
+			},
+			"alt": {
+				loadItems: func() []*item {
+					return []*item{
+						{text: "Model", action: GENERATE_MODEL, key: "selectTables"},
+						{text: "Actions", action: GENERATE_REST, key: "selectTables"},
+						{text: "List Page", action: GENERATE_LIST, key: "selectTables"},
+						{text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
+						// {text: "TS Definition", action: GENERATE_EDIT
+						// {text: "API"},
 					}
 					//Enter key : "enterTableName"
 				},
 				viewType: NAVIGATION_CHOICE,
 			},
-			"alt": {
-				loadItems: func() []*item {
-					return []*item{
-						{text: "Database", itemType: HEADING},
-						{text: "New table"},
-						{text: "Add field to existing table"},
-						{text: "> Rest"},
-						{text: "Model"},
-						{text: "Actions"},
-						{text: "> User Interface"},
-						{text: "List Page"},
-						{text: "Edit Page"},
-						{text: "TS Definition"},
-						{text: "API"},
-					}
-					//Enter key : "enterTableName"
+			"enterProjectName": {
+				viewType: INPUT,
+				question: "Project Name",
+				viewKey:  "enterProjectPath",
+				process: func(m *model) {
+					localstate.projectName = m.input.Value()
 				},
-				viewType: NAVIGATION_CHOICE,
+			},
+			"enterProjectPath": {
+				viewType: INPUT,
+				question: "Project Path",
+				viewKey:  "end",
+				process: func(m *model) {
+					localstate.projectPath = m.input.Value()
+				},
 			},
 			"database": {
 				loadItems: func() []*item {
@@ -220,11 +294,15 @@ func initialModel() *model {
 						{text: "Database", itemType: HEADING},
 						{text: "New Table", key: "enterTableName", action: CREATE_TABLE},
 						{text: "Delete Table", key: "selectTables"},
+						{text: "Migrate", key: "end", action: MIGRATE},
 					}
 				},
 				viewType: NAVIGATION_CHOICE,
 			},
-			"selectTables": {
+			"selectTable": {
+				process: func(m *model) {
+					localstate.tableName = m.selection
+				},
 				loadItems: func() []*item {
 					items := make([]*item, 0)
 					rows := make([]string, 0)
@@ -242,6 +320,92 @@ func initialModel() *model {
 					}
 					return items
 				},
+				viewKey:  "end",
+				viewType: SINGLE_CHOICE,
+			},
+			"selectTableForSearch": {
+				process: func(m *model) {
+					localstate.tableName = m.selection
+				},
+				loadItems: func() []*item {
+					items := make([]*item, 0)
+					rows := make([]string, 0)
+					getDBConnection().DB.Select(&rows, `
+						select table_name from information_schema.tables
+						where table_schema = 'public'
+					`)
+
+					for _, row := range rows {
+						items = append(items, &item{
+							text:     row,
+							key:      row,
+							itemType: STANDARD,
+							action:   GENERATE_SEARCH,
+						})
+					}
+					return items
+				},
+				viewKey:  "assignSearchPriority",
+				viewType: SINGLE_CHOICE,
+			},
+			"assignSearchPriority": {
+				process: func(m *model) {
+					localstate.fieldNames = make([]string, 0)
+					localstate.fieldPriorities = make([]string, 0)
+					for i, fieldName := range m.selections {
+						localstate.fieldNames = append(localstate.fieldNames, fieldName)
+						localstate.fieldPriorities = append(localstate.fieldPriorities, m.prioritySelections[i])
+					}
+				},
+				loadItems: func() []*item {
+					items := make([]*item, 0)
+					rows := make([]string, 0)
+					getDBConnection().DB.Select(&rows, `
+					select column_name from information_schema.columns
+					where table_schema = 'public'
+					and table_name = '`+localstate.tableName+`'
+					and column_name <> 'tsv'
+					order by column_name
+					`)
+
+					for _, row := range rows {
+						items = append(items, &item{
+							text:     row,
+							key:      row,
+							itemType: PRIORITY,
+						})
+					}
+					return items
+				},
+				viewType: PRIORITY_CHOICE,
+				viewKey:  "end",
+			},
+			"selectTables": {
+				process: func(m *model) {
+					tables := make([]string, 0)
+					for _, selection := range m.selections {
+						tables = append(tables, selection)
+					}
+					localstate.tables = tables
+				},
+				loadItems: func() []*item {
+					items := make([]*item, 0)
+					rows := make([]string, 0)
+					getDBConnection().DB.Select(&rows, `
+						select table_name from information_schema.tables
+						where table_schema = 'public'
+					`)
+
+					for _, row := range rows {
+						items = append(items, &item{
+							text:     row,
+							key:      row,
+							itemType: CHOICE,
+						})
+					}
+					return items
+				},
+				viewKey:  "end",
 				viewType: MULTI_CHOICE,
 			},
 			"enterTableName": {
@@ -272,12 +436,12 @@ func initialModel() *model {
 				},
 				// selection: "",
 				viewType: SINGLE_CHOICE,
-				viewKey:  "loopFIeld",
+				viewKey:  "loopField",
 				process: func(m *model) {
 					localstate.fieldTypes = append(localstate.fieldTypes, m.selection)
 				},
 			},
-			"loopFIeld": {
+			"loopField": {
 				loadItems: func() []*item {
 					return []*item{
 						{text: "Keep going?", itemType: HEADING},
@@ -288,7 +452,7 @@ func initialModel() *model {
 				viewType: NAVIGATION_CHOICE,
 			},
 			"end": {
-				viewType: END,
+				viewType: PROGRESS,
 			},
 		},
 
@@ -296,22 +460,42 @@ func initialModel() *model {
 		// A map which indicates which choices are selected. We're using
 		// the  map like a mathematical set. The keys refer to the indexes
 		// of the `choices` slice, above.
-		selectedItem: "",
-		selection:    "",
-		selections:   make(map[int]string),
-		input:        textinput.NewModel(),
+		selectedItem:       "",
+		selection:          "",
+		selections:         make(map[int]string),
+		prioritySelections: make(map[int]string),
+		input:              textinput.NewModel(),
+		progress:           progress.NewModel(progress.WithDefaultGradient()),
 	}
 
 	model.changeView("home", NO_ACTION)
 	return model
 }
 
+var isEnvPresent bool
+
 func main() {
+	isEnvPresent = false
 	// load from .env file where scaffold is run
-	if err := dotenv.Load(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
+	if err := dotenv.Load(); err == nil {
+		isEnvPresent = true
 	}
+	if err := dotenv.Load("./rest/.env"); err == nil {
+		isEnvPresent = true
+	}
+
+	// if !isEnvPresent {
+	// 	fmt.Printf("Failed to load .env file")
+	// 	os.Exit(1)
+	// }
+
+	localstate = &state{
+		actions:    make([]action, 0),
+		tableName:  "",
+		fieldNames: make([]string, 0),
+		fieldTypes: make([]string, 0),
+	}
+
 	p := tea.NewProgram(initialModel())
 	if err := p.Start(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
@@ -319,15 +503,45 @@ func main() {
 	}
 }
 
+func tickCmd() tea.Cmd {
+	return tea.Tick(time.Millisecond*300, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
 func (m *model) Init() tea.Cmd {
-	// Just return `nil`, which means "no I/O right now, please."
-	return nil
+	return tickCmd()
 }
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	// Is it a key press?
+	case errMsg:
+		m.err = msg
+		return m, nil
+	// case tea.WindowSizeMsg:
+	// 	m.progress.Width = msg.Width - padding*2 - 4
+	// 	if m.progress.Width > maxWidth {
+	// 		m.progress.Width = maxWidth
+	// 	}
+	// 	return m, nil
+	case progress.FrameMsg:
+		progressModel, cmd := m.progress.Update(msg)
+		m.progress = progressModel.(progress.Model)
+		return m, cmd
+	case tickMsg:
+		if m.progress.Percent() == 1.00 {
+			return m, tea.Quit
+		}
+
+		// Note that you can also use progress.Model.SetPercent to set the
+		// percentage value explicitly, too.
+		cmd := m.progress.IncrPercent(0.0)
+		if m.currentItem().viewType == PROGRESS {
+			cmd = m.progress.IncrPercent(0.10)
+		}
+
+		return m, tea.Batch(tickCmd(), cmd)
 	case tea.KeyMsg:
 		if msg.Type == tea.KeyCtrlC || msg.Type == tea.KeyEsc {
 			return m, tea.Quit
@@ -337,7 +551,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if msg.Type == tea.KeyEnter || msg.Type == tea.KeyEsc {
 				return m.changeView(m.currentItem().viewKey, NO_ACTION)
 			}
-			var cmd tea.Cmd
 			m.input, cmd = m.input.Update(msg)
 			return m, cmd
 		}
@@ -375,6 +588,17 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 
+			case "a", "b", "c", "d", "e", "f", "backspace":
+				if m.currentItem().viewType == PRIORITY_CHOICE {
+					_, ok := m.selections[m.cursor]
+					if ok && (m.prioritySelections[m.cursor] == msg.String() || msg.String() == "backspace") { // same key as already there or delete button
+						delete(m.selections, m.cursor)
+						delete(m.prioritySelections, m.cursor)
+					} else {
+						m.selections[m.cursor] = choice.key
+						m.prioritySelections[m.cursor] = msg.String()
+					}
+				}
 			// The "enter" key and the spacebar (a literal space) toggle
 			// the selected state for the item that the cursor is pointing at.
 			case " ", "enter":
@@ -390,19 +614,34 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selection = choice.key
 					return m.changeView(m.currentItem().viewKey, choice.action)
 				} else if m.currentItem().viewType == NAVIGATION_CHOICE {
-					return m.changeView(itemKey(choice.key), choice.action)
+					return m.changeView(viewItemKey(choice.key), choice.action)
+				} else {
+					return m.changeView(m.currentItem().viewKey, choice.action)
 				}
+			default:
+				logrus.Info(msg.String())
 			}
 		}
+	default:
 	}
 	// Return the updated model to the Bubble Tea runtime for processing.
 	// Note that we're not returning a command.
+	if m.currentItem().viewType == INPUT {
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
+	}
 	return m, nil
 }
 
 func (m *model) View() string {
+	if m.err != nil {
+		return headingStyle.Render("ERROR") + BREAK + m.err.Error()
+	}
+
 	viewType := m.currentItem().viewType
-	s := ""
+	s := string(viewType) + BREAK
+	// return "\n" +
+	// pad + helpStyle("Press any key to quit")
 	if viewType == END {
 		if m.err != nil {
 			s += fmt.Sprintf(
@@ -411,6 +650,8 @@ func (m *model) View() string {
 				"(esc to quit)",
 			) + "\n"
 		}
+	} else if viewType == PROGRESS {
+		s += m.progress.View() + BREAK
 	} else if viewType == INPUT {
 		s += fmt.Sprintf(
 			"%s\n\n%s\n\n%s",
@@ -418,29 +659,39 @@ func (m *model) View() string {
 			m.input.View(),
 			"(esc to quit)",
 		) + "\n"
-	} else if viewType == SINGLE_CHOICE || viewType == MULTI_CHOICE || viewType == NAVIGATION_CHOICE {
+	} else if viewType == SINGLE_CHOICE || viewType == MULTI_CHOICE || viewType == NAVIGATION_CHOICE || viewType == PRIORITY_CHOICE {
 		choices := m.currentItem().items
 
+		// if viewType == PRIORITY_CHOICE {
+		// 	logrus.Info(choices)
+		// }
 		// Iterate over our choices
 		for i, choice := range choices {
 
 			// Is the cursor pointing at this choice?
 			isHighlighted := m.cursor == i
 
-			// Is this choice selected?
-			checked := " " // not selected
-			if m.selections != nil {
-				selections := m.selections
-				if _, ok := selections[i]; ok {
-					checked = "+" // selected!
-				}
-			}
-
 			line := choice.text
 			if choice.itemType == HEADING {
-				line = headingStyle.Render(choice.text) + BREAK
+				line = subheadingStyle.Render(choice.text) + BREAK // IGNORING
 			} else if choice.itemType == CHOICE {
+				// Is this choice selected?
+				checked := " " // not selected
+				if m.selections != nil {
+					selections := m.selections
+					if _, ok := selections[i]; ok {
+						checked = "+" // selected!
+					}
+				}
 				line = fmt.Sprintf("[%s] %s", checked, choice.text)
+			} else if choice.itemType == PRIORITY {
+				char := " "
+				if m.selections != nil {
+					if _, ok := m.selections[i]; ok {
+						char = m.prioritySelections[i]
+					}
+				}
+				line = fmt.Sprintf("[%s] %s", char, choice.text)
 			}
 
 			if isHighlighted {
@@ -448,7 +699,6 @@ func (m *model) View() string {
 			} else {
 				s += line + BREAK
 			}
-
 			// Render the row
 		}
 	}
@@ -460,8 +710,34 @@ func (m *model) View() string {
 func run() (err error) {
 	render := getRenderer()
 	for _, action := range localstate.actions {
-		if action == CREATE_TABLE {
+		if action == SCAFFOLD_PROJECT {
+			err = createProject(localstate.projectName, localstate.projectPath)
+		} else if action == CREATE_TABLE {
 			err = createTable(localstate.tableName, localstate.fields(), render, getDBConnection())
+		} else if action == ADD_FIELDS {
+			for _, tableName := range localstate.tables {
+				err = addFields(tableName, localstate.fields(), render, getDBConnection())
+			}
+		} else if action == GENERATE_MODEL {
+			for _, tableName := range localstate.tables {
+				err = createModel(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_REST {
+			for _, tableName := range localstate.tables {
+				err = createRest(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_EDIT {
+			for _, tableName := range localstate.tables {
+				err = createEdit(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_LIST {
+			for _, tableName := range localstate.tables {
+				err = createList(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_SEARCH {
+			err = createSearch(localstate.tableName, localstate.fields(), render, getDBConnection())
+		} else if action == MIGRATE {
+			err = doMigration(render, getDBConnection())
 		}
 	}
 	return err

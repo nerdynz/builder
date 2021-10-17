@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"go/build"
 	"html/template"
 	"net/http"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/nerdynz/helpers"
+	"github.com/pinzolo/casee"
 
 	"bytes"
 
@@ -26,7 +29,6 @@ import (
 	"gopkg.in/mattes/migrate.v1/file"
 	"gopkg.in/mattes/migrate.v1/migrate"
 
-	"github.com/serenize/snaker"
 	"github.com/stoewer/go-strcase"
 )
 
@@ -53,15 +55,17 @@ func (slice descriptions) Swap(i int, j int) {
 }
 
 type Child struct {
-	CamelName  string
-	TableName  string
-	PluralName string
+	CamelName       string
+	TableName       string
+	PluralName      string
+	PluralCamelName string
 }
 
 type Field struct {
-	FieldName    string
-	FieldType    string
-	FieldDefault string
+	FieldName     string
+	FieldType     string
+	FieldDefault  string
+	FieldPriority string
 }
 
 type Fields []Field
@@ -72,7 +76,7 @@ func createTable(tableName string, fields Fields, r *render.Render, db *runner.D
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations", "create_"+bucket.getStr("TableName"))
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "create_"+bucket.getStr("TableName"))
 	if err != nil {
 		return err
 	}
@@ -87,12 +91,33 @@ func createTable(tableName string, fields Fields, r *render.Render, db *runner.D
 	return nil
 }
 
-func addFields(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+func createSearch(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+	bucket := newViewBucket()
+
+	bucket.add("TableName", tableName)
+	bucket.add("Fields", fields)
+
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "search_"+bucket.getStr("TableName"))
+	if err != nil {
+		return err
+	}
+	err = migrationFromTemplate(r, "create-search", file.UpFile, bucket)
+	if err != nil {
+		return err
+	}
+	err = migrationFromTemplate(r, "drop-search", file.DownFile, bucket)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB) error {
 	bucket := newViewBucket()
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations", "fields_"+bucket.getStr("TableName"))
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "fields_"+bucket.getStr("TableName"))
 	if err != nil {
 		return err
 	}
@@ -107,8 +132,8 @@ func addFields(tableName string, fields Fields, r *render.Render, db *runner.DB)
 	return nil
 }
 
-func doMigration(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
-	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./server/models/migrations")
+func doMigration(r *render.Render, db *runner.DB) error {
+	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations")
 	finalError := ""
 	if ok {
 		// sweet
@@ -116,33 +141,35 @@ func doMigration(tableName string, fields Fields, r *render.Render, db *runner.D
 		for _, err := range errs {
 			finalError += err.Error() + "\n"
 		}
-
+	}
+	if finalError != "" {
+		return errors.New(finalError)
 	}
 	return nil
 }
 
-func createModel(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, fields, r, db, "create-model", "./server/models/", ":TableNameCamel.go.tmp")
+func createModel(tableName string, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, nil, r, db, "create-model", "./rest/models/", ":TableNameCamel.go.tmp")
 }
 
-func createRest(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, fields, r, db, "create-rest", "./server/actions/", ":TableNameCamelPlural.go.tmp")
+func createRest(tableName string, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, nil, r, db, "create-rest", "./rest/actions/", ":TableNameCamelPlural.go.tmp")
 }
 
-func createList(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
-	err := createSomethingNoDiff(tableName, fields, r, db, "create-list-index", "./admin/pages/:TableNameCamelPlural/", "index.vue", true)
+func createList(tableName string, r *render.Render, db *runner.DB) error {
+	err := createSomethingNoDiff(tableName, nil, r, db, "create-list-index", "./spa/pages/:TableNameCamelPlural/", "index.vue", true)
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, fields, r, db, "create-list", "./admin/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
+	return createSomething(tableName, nil, r, db, "create-list", "./spa/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
 }
 
-func createEdit(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, fields, r, db, "create-edit", "./admin/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
+func createEdit(tableName string, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, nil, r, db, "create-edit", "./spa/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
 }
 
 func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
-	return createSomethingNoDiff(tableName, fields, r, db, tmpl, path, ext, false)
+	return createSomethingNoDiff(tableName, fields, r, db, tmpl, path, ext, true) // DO I WANT THIS DIFF
 }
 
 func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, skipDiff bool) error {
@@ -152,8 +179,8 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 
 	// populate variables
 	// tableName := bucket.getStr("TableName")
-	tableNameTitle := snaker.SnakeToCamel(tableName) // this actualy gives us a TitleCase result
-	tableNameCamel := snaker.SnakeToCamelLower(tableName)
+	tableNameTitle := casee.ToPascalCase(tableName) // this actualy gives us a TitleCase result
+	tableNameCamel := casee.ToCamelCase(tableName)
 	tableNameLower := strings.ToLower(tableName)
 	tableID := tableName + "_id"
 	tableULID := tableName + "_ulid"
@@ -169,15 +196,15 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
 	bucket.add("TableID", tableID)
 	bucket.add("TableULID", tableULID)
-	bucket.add("TableIDTitle", snaker.SnakeToCamel(tableID))
-	bucket.add("TableIDCamel", snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
-	bucket.add("TableIDCamelWithRecord", "record."+snaker.SnakeToCamelLower(snaker.SnakeToCamel(tableID)))
+	bucket.add("TableIDTitle", casee.ToPascalCase(tableID))
+	bucket.add("TableIDCamel", casee.ToCamelCase(tableID))
+	bucket.add("TableIDCamelWithRecord", "record."+casee.ToCamelCase(tableID))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
 	err := db.Select("column_name, data_type, is_nullable, table_name").
 		From("information_schema.columns").
-		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName).
+		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName). // field excluse
 		QueryStructs(&columns)
 	if err != nil {
 		return err
@@ -211,12 +238,13 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	}
 	childrenTableNames := make([]Child, 0)
 	for _, col := range columns {
-		colName := snaker.SnakeToCamel(col.TableName)
+		colName := casee.ToPascalCase(col.TableName)
 		colNamePlural := inflection.Plural(colName)
 		childrenTableNames = append(childrenTableNames, Child{
-			PluralName: colNamePlural,
-			TableName:  colName,
-			CamelName:  snaker.SnakeToCamelLower(colName),
+			PluralName:      colNamePlural,
+			TableName:       colName,
+			CamelName:       casee.ToCamelCase(colName),
+			PluralCamelName: inflection.Plural(colName),
 		})
 	}
 
@@ -229,7 +257,7 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	}
 	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
-	ext = strings.Replace(ext, ":TableNameCamelID", snaker.SnakeToCamelLower(tableID), -1)
+	ext = strings.Replace(ext, ":TableNameCamelID", casee.ToCamelCase(tableID), -1)
 	fullpath := folderPath + ext
 
 	fo, err := os.Create(fullpath)
@@ -247,7 +275,7 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 		return err
 	}
 	wr.Flush()
-	// err = ioutil.WriteFile("./server/models/migrations/"+tableName+".go", buffer.Bytes(), os.ModePerm)
+	// err = ioutil.WriteFile("./rest/migrations/"+tableName+".go", buffer.Bytes(), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -285,7 +313,7 @@ func (colInfo *ColumnInfo) Label() string {
 }
 
 func (colInfo *ColumnInfo) Name() string {
-	colName := snaker.SnakeToCamel(colInfo.ColumnName)
+	colName := casee.ToPascalCase(colInfo.ColumnName)
 	return colName
 }
 
@@ -308,7 +336,7 @@ func (colInfo *ColumnInfo) ColumnNameTitle() string {
 	if colInfo.ColumnName == "ulid" {
 		return "ULID"
 	}
-	s := snaker.SnakeToCamel(colInfo.ColumnName)
+	s := casee.ToPascalCase(colInfo.ColumnName)
 	s = strings.Replace(s, "Ulid", "ULID", -1)
 	return s
 }
@@ -318,7 +346,12 @@ func (colInfo *ColumnInfo) ColumnNameSplitTitle() string {
 }
 
 func (colInfo *ColumnInfo) ColumnNameCamel() string {
-	return snaker.SnakeToCamelLower(colInfo.ColumnNameTitle())
+	if colInfo.ColumnName == "ulid" {
+		return "ULID"
+	}
+	s := casee.ToCamelCase(colInfo.ColumnNameTitle())
+	s = strings.Replace(s, "Ulid", "ULID", -1)
+	return s
 }
 
 func (colInfo *ColumnInfo) ColumnType() string {
@@ -445,9 +478,9 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 		// fmt.Println(path, replacement)
 		newContents := ""
 		if isProcFile || isPackageJSON || isDotEnv {
-			newContents = strings.Replace(string(read), "scaffold", name, -1)
+			newContents = strings.Replace(string(read), "skeleton", name, -1)
 		} else {
-			newContents = strings.Replace(string(read), "github.com/nerdynz/builder/scaffold", replacement, -1)
+			newContents = strings.Replace(string(read), "github.com/nerdynz/", replacement, -1)
 		}
 
 		if newContents != "" {
@@ -460,7 +493,7 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 	return nil
 }
 
-func walkFiles(path string, name, replacement string) error {
+func replaceNameInFiles(path string, name, replacement string) error {
 	// fmt.Println("path:" + path + "    replacement:" + replacement)
 	err := filepath.Walk(path, func(path string, fi os.FileInfo, err error) error {
 		return visit(path, name, replacement, fi, err)
@@ -471,26 +504,35 @@ func walkFiles(path string, name, replacement string) error {
 	return nil
 }
 
-// func createProject(tableName string, fields Fields, r *render.Render) error {
-// 	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/builder/scaffold"
-// 	projectName := c.Args().First()
-// 	outpath := build.Default.GOPATH + "/src/" + c.Args().Get(1)
-// 	projectReplace := c.Args().Get(1)
-// 	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
-// 		return ("Did you specify a project name and
-// 	}
-// 	fmt.Println("copying " + fullpath + " to " + outpath)
-// 	err := Copy(fullpath, outpath)
-// 	if err != nil {
-// 		if strings.HasPrefix(err.Error(), "symlink") {
-// 			fmt.Println(err.Error())
-// 		} else {
-// 			return err
-// 		}
-// 	}
-// 	err = walkFiles(outpath, projectName, projectReplace)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func createProject(projectName string, outpath string) error {
+	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/skeleton/"
+	if !strings.Contains(outpath, build.Default.GOPATH) {
+		outpath = build.Default.GOPATH + "/src/" + outpath
+	}
+	if !strings.HasSuffix(outpath, "/") {
+		outpath += "/"
+	}
+	projectReplace := strings.TrimPrefix(outpath, build.Default.GOPATH+"/src/")
+	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
+		return errors.New("Did you specify a project name and path?")
+	}
+
+	folders := []string{"rest", "spa", "blueprints"}
+	for _, folder := range folders {
+		// fmt.Println("copying " + fullpath + " to " + outpath)
+		err := Copy(fullpath+folder, outpath+folder)
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "symlink") {
+				fmt.Println(err.Error())
+			} else {
+				return err
+			}
+		}
+	}
+
+	err := replaceNameInFiles(outpath, projectName, projectReplace)
+	if err != nil {
+		return err
+	}
+	return nil
+}

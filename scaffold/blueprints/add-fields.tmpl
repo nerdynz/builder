@@ -1,6 +1,0 @@
-{{$tableName := .Data.TableName}}
-{{range $field := .Data.Fields}} 
-ALTER TABLE "{{$tableName}}" ADD COLUMN "{{$field.FieldName}}" {{$field.FieldType}} DEFAULT {{$field.FieldDefault}}; 
-UPDATE "{{$tableName}}" SET "{{$field.FieldName}}" = 0 where "{{$field.FieldName}}" is null;
-{{end}}
-

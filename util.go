@@ -21,6 +21,10 @@ func getRenderer() *render.Render {
 	if tmplDir == "" {
 		tmplDir = "./blueprints"
 	}
+	dir, _ := os.Getwd()
+	if strings.HasPrefix(tmplDir, "./") {
+		tmplDir = dir + "/" + strings.TrimPrefix(tmplDir, "./")
+	}
 	r := render.New(render.Options{
 		Directory: tmplDir,
 		Funcs: []template.FuncMap{

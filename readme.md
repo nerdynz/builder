@@ -5,16 +5,16 @@ It simply connects to the database defined in .env and fills in the tmpl files i
 
 ## Available field names
 
-- TableNameSpaces
-- TableNameTitle
-- TableNameCamel
-- TableNameLower
-- TableNamePlural
-- TableNamePluralTitle
-- TableNamePluralCamel
-- TableID
-- TableIDTitle
-- TableIDCamel
+- TableNameSpaces `Person` `Image Meta`
+- TableNameTitle `Person` `ImageMeta`
+- TableNameCamel `person` `imageMeta`
+- TableNameLower `person` `imagemeta`
+- TableNamePlural `people` `image_metas`
+- TableNamePluralTitle `people` `ImageMetas`
+- TableNamePluralCamel `people` `imageMetas`
+- TableID `person_ulid`
+- TableIDTitle `PersonULID`
+- TableIDCamel `personULID`
 - TableIDCamelWithRecord
 
 Currently it generates code for 
@@ -32,3 +32,8 @@ __ You can change the blueprints to whatever you want, just follow the naming co
 ## Installation
 `go get github.com/nerdynz/builder`
 
+add a `rest/migrations` folder to test migrations
+
+
+## NEEDS CLEANUP
+- case statements and logic a rebit all over the place, first use of bubble tea, so it was a bit of a peacemeal process

@@ -1,4 +1,0 @@
-DROP TABLE IF EXISTS "page";
-DROP TABLE IF EXISTS "block";
-DROP TABLE IF EXISTS "person";
-DROP TABLE IF EXISTS "usersession_token";
