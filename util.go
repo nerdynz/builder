@@ -86,10 +86,11 @@ type viewBucket struct {
 
 func newViewBucket() *viewBucket {
 	return &viewBucket{Data: map[string]interface{}{
-		"LTEqStr": template.HTML(`<=`),
-		"GTEqStr": template.HTML(`>=`),
-		"LTStr":   template.HTML(`<`),
-		"GTStr":   template.HTML(`>`),
+		"LTEqStr":     template.HTML(`<=`),
+		"GTEqStr":     template.HTML(`>=`),
+		"LTStr":       template.HTML(`<`),
+		"LEFT_BRACE":  template.JS(`{`),
+		"RIGHT_BRACE": template.JS(`}`),
 	}}
 }
 

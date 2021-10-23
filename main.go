@@ -266,7 +266,7 @@ func initialModel() *model {
 						{text: "Actions", action: GENERATE_REST, key: "selectTables"},
 						{text: "List Page", action: GENERATE_LIST, key: "selectTables"},
 						{text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
-						{text: "TS Definition", action: GENERATE_API, key: "selectTables"},
+						{text: "API", action: GENERATE_API, key: "selectTables"},
 						// {text: "API"},
 					}
 					//Enter key : "enterTableName"

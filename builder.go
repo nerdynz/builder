@@ -405,6 +405,27 @@ func (colInfo *ColumnInfo) JavascriptType() string { // VERY GO CENTRIC
 	}
 	return ""
 }
+func (colInfo *ColumnInfo) JavascriptBlankValue() string { // VERY GO CENTRIC
+	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+	// 	return "ULID"
+	// }
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
+		return "''"
+	}
+	if colInfo.DataType == "uuid" {
+		return "''"
+	}
+	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
+		return "0"
+	}
+	if colInfo.DataType == "boolean" {
+		return "false"
+	}
+	if colInfo.DataType == "timestamp with time zone" {
+		return "new Date()"
+	}
+	return ""
+}
 
 func (colInfo *ColumnInfo) IsID() bool {
 	return strings.Contains(colInfo.Name(), "_id") || strings.HasSuffix(colInfo.Name(), "ID")
