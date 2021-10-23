@@ -325,8 +325,12 @@ func (colInfo *ColumnInfo) IsNullField() bool {
 	return colInfo.IsNullable == "YES"
 }
 
+func (colInfo *ColumnInfo) IsNumber() bool {
+	return colInfo.DataType == "integer" || colInfo.DataType == "numeric"
+}
+
 func (colInfo *ColumnInfo) IsDate() bool {
-	return strings.HasPrefix(colInfo.Name(), "Date")
+	return colInfo.DataType == "timestamp with time zone"
 }
 
 func (colInfo *ColumnInfo) IsDefault() bool {
@@ -358,7 +362,7 @@ func (colInfo *ColumnInfo) ColumnNameCamel() string {
 	return s
 }
 
-func (colInfo *ColumnInfo) ColumnType() string {
+func (colInfo *ColumnInfo) ColumnType() string { // VERY GO CENTRIC
 	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
 	// 	return "ULID"
 	// }
@@ -376,6 +380,28 @@ func (colInfo *ColumnInfo) ColumnType() string {
 	}
 	if colInfo.DataType == "timestamp with time zone" {
 		return "time.Time"
+	}
+	return ""
+}
+
+func (colInfo *ColumnInfo) JavascriptType() string { // VERY GO CENTRIC
+	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+	// 	return "ULID"
+	// }
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
+		return "string"
+	}
+	if colInfo.DataType == "uuid" {
+		return "string"
+	}
+	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
+		return "number"
+	}
+	if colInfo.DataType == "boolean" {
+		return "boolean"
+	}
+	if colInfo.DataType == "timestamp with time zone" {
+		return "Date"
 	}
 	return ""
 }
