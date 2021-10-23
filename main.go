@@ -59,6 +59,7 @@ const (
 	SCAFFOLD_PROJECT
 	CREATE_TABLE
 	ADD_FIELDS
+	GENERATE_API
 	GENERATE_MODEL
 	GENERATE_REST
 	GENERATE_EDIT
@@ -717,6 +718,10 @@ func run() (err error) {
 		} else if action == ADD_FIELDS {
 			for _, tableName := range localstate.tables {
 				err = addFields(tableName, localstate.fields(), render, getDBConnection())
+			}
+		} else if action == GENERATE_API {
+			for _, tableName := range localstate.tables {
+				err = createAPI(tableName, render, getDBConnection())
 			}
 		} else if action == GENERATE_MODEL {
 			for _, tableName := range localstate.tables {

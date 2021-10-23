@@ -148,6 +148,10 @@ func doMigration(r *render.Render, db *runner.DB) error {
 	return nil
 }
 
+func createAPI(tableName string, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, nil, r, db, "create-api", "./spa/src/api/", ":TableNameCamel.ts")
+}
+
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
 	return createSomething(tableName, nil, r, db, "create-model", "./rest/models/", ":TableNameCamel.go.tmp")
 }
@@ -157,15 +161,15 @@ func createRest(tableName string, r *render.Render, db *runner.DB) error {
 }
 
 func createList(tableName string, r *render.Render, db *runner.DB) error {
-	err := createSomethingNoDiff(tableName, nil, r, db, "create-list-index", "./spa/pages/:TableNameCamelPlural/", "index.vue", true)
+	err := createSomethingNoDiff(tableName, nil, r, db, "create-list-index", "./spa/src/views/:TableNameCamelPlural/", "index.vue", true)
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, nil, r, db, "create-list", "./spa/pages/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
+	return createSomething(tableName, nil, r, db, "create-list", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
 }
 
 func createEdit(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-edit", "./spa/pages/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
+	return createSomething(tableName, nil, r, db, "create-edit", "./spa/views/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
 }
 
 func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
@@ -179,26 +183,26 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 
 	// populate variables
 	// tableName := bucket.getStr("TableName")
-	tableNameTitle := casee.ToPascalCase(tableName) // this actualy gives us a TitleCase result
+	tableNamePascal := casee.ToPascalCase(tableName)
 	tableNameCamel := casee.ToCamelCase(tableName)
 	tableNameLower := strings.ToLower(tableName)
-	tableID := tableName + "_id"
+	// tableID := tableName + "_id"
 	tableULID := tableName + "_ulid"
-	tnJnt := strings.Join(strings.Split(tableNameTitle, "_"), " ")
+	tnJnt := strings.Join(strings.Split(tableNamePascal, "_"), " ")
 
 	bucket.add("TableNameSpaces", tnJnt)
-	bucket.add("TableNameTitle", tableNameTitle)
+	bucket.add("TableNamePascal", tableNamePascal)
 	bucket.add("TableNameCamel", tableNameCamel)
 	bucket.add("TableNameLower", tableNameLower)
 	bucket.add("TableNamePlural", inflection.Plural(tableNameLower))
-	bucket.add("TableNamePluralTitle", inflection.Plural(tableNameTitle))
+	bucket.add("TableNamePluralPascal", inflection.Plural(tableNamePascal))
 	bucket.add("TableNamePluralCamel", inflection.Plural(tableNameCamel))
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
-	bucket.add("TableID", tableID)
+	// bucket.add("TableID", tableID)
 	bucket.add("TableULID", tableULID)
-	bucket.add("TableIDTitle", casee.ToPascalCase(tableID))
-	bucket.add("TableIDCamel", casee.ToCamelCase(tableID))
-	bucket.add("TableIDCamelWithRecord", "record."+casee.ToCamelCase(tableID))
+	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "ULID", -1))
+	bucket.add("TableULIDCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "ULID", -1))
+	bucket.add("TableULIDCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "ULID", -1))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
@@ -213,12 +217,12 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	colsDBConcat := `"`
 	colsRecordPrefixedConcat := ""
 	for i, col := range columns {
-		if col.ColumnName == tableID {
+		if col.ColumnName == tableULID {
 			// we never want to include the table_id where these values are used because id's get generated from the database
 			continue
 		}
 		colsDBConcat += col.ColumnName + `"`
-		colsRecordPrefixedConcat += "record." + col.ColumnNameTitle()
+		colsRecordPrefixedConcat += "record." + col.ColumnNamePascal()
 		if i != (len(columns) - 1) {
 			colsDBConcat += `, "`
 			colsRecordPrefixedConcat += ", "
@@ -231,7 +235,7 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	columns = []*ColumnInfo{}
 	err = db.Select("column_name, data_type, is_nullable, table_name").
 		From("information_schema.columns").
-		Where("table_schema = $1 and (column_name = $2 or column_name = $3) and column_name <> 'tsv' and table_name <> $4", "public", tableID, tableULID, tableName).
+		Where("table_schema = $1 and column_name = $2 and column_name <> 'tsv' and table_name <> $3", "public", tableULID, tableName).
 		QueryStructs(&columns)
 	if err != nil {
 		return err
@@ -257,7 +261,7 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	}
 	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
-	ext = strings.Replace(ext, ":TableNameCamelID", casee.ToCamelCase(tableID), -1)
+	ext = strings.Replace(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID), -1)
 	fullpath := folderPath + ext
 
 	fo, err := os.Create(fullpath)
@@ -332,7 +336,7 @@ func (colInfo *ColumnInfo) IsDefault() bool {
 	return true
 }
 
-func (colInfo *ColumnInfo) ColumnNameTitle() string {
+func (colInfo *ColumnInfo) ColumnNamePascal() string {
 	if colInfo.ColumnName == "ulid" {
 		return "ULID"
 	}
@@ -349,7 +353,7 @@ func (colInfo *ColumnInfo) ColumnNameCamel() string {
 	if colInfo.ColumnName == "ulid" {
 		return "ULID"
 	}
-	s := casee.ToCamelCase(colInfo.ColumnNameTitle())
+	s := casee.ToCamelCase(colInfo.ColumnNamePascal())
 	s = strings.Replace(s, "Ulid", "ULID", -1)
 	return s
 }

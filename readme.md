@@ -5,25 +5,26 @@ It simply connects to the database defined in .env and fills in the tmpl files i
 
 ## Available field names
 
-- TableNameSpaces `Person` `Image Meta`
-- TableNameTitle `Person` `ImageMeta`
+- TableName `person` `image_meta`
+- TableNameSpaces `person` `image meta`
+- TableNamePascal `Person` `ImageMeta`
 - TableNameCamel `person` `imageMeta`
 - TableNameLower `person` `imagemeta`
 - TableNamePlural `people` `image_metas`
-- TableNamePluralTitle `people` `ImageMetas`
+- TableNamePluralPascal `people` `ImageMetas`
 - TableNamePluralCamel `people` `imageMetas`
 - TableID `person_ulid`
 - TableIDTitle `PersonULID`
 - TableIDCamel `personULID`
-- TableIDCamelWithRecord
 
 Currently it generates code for 
 
 - table creation / migrations
 - RESTful 
 - models
-- list pages in vue
-- edit pages in vue
+- list pages (blueprint is for vue 3)
+- edit pages (blueprint is for vue 3)
+- API definition
 
 Take a look at blueprints for an example. Currently the blueprints are very much tied to my take on a web framework in Golang. I hope to get to a point where I can put it on github in an understandable manor.
 
