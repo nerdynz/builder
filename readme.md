@@ -37,4 +37,17 @@ add a `rest/migrations` folder to test migrations
 
 
 ## NEEDS CLEANUP
-- case statements and logic a rebit all over the place, first use of bubble tea, so it was a bit of a peacemeal process
+- case statements and logic are a bit all over the place, first use of bubble tea, so it was a bit of a peacemeal process
+
+## TODO 
+- configuration for ID currently its using ULIDs because I favour theme. (this is very non standard)
+- configuration paths for output files `(e.g. migrations go to flyway)`
+- configuration for field maping from db to code
+- flexiblity around custom constructs e.g. `efile, image_meta, rich_text_meta` 
+
+e.g.
+
+`text` becomes `string` in javascript and go
+`timestamp` becomes `Date` in javascript but `time.Time` in go
+
+This utility doesn't need to be specific to go or javascript, so configuration needs to provide that flexiblity (we are just outputting strings.... its not hard)

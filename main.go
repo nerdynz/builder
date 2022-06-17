@@ -49,6 +49,11 @@ var selectionStyle = lipgloss.NewStyle().
 	// PaddingLeft(4).
 	Width(50)
 
+var endOf = lipgloss.NewStyle().
+	Background(lipgloss.Color("#15b8a6")).
+	MarginTop(1).
+	Width(50)
+
 type action int
 type viewItemKey string
 type viewType string
@@ -58,12 +63,18 @@ const (
 	NO_ACTION action = iota
 	SCAFFOLD_PROJECT
 	CREATE_TABLE
+	DELETE_TABLE
+	CREATE_MIGRATION
 	ADD_FIELDS
 	GENERATE_API
 	GENERATE_MODEL
+	GENERATE_PROTO
+	GENERATE_RPC
 	GENERATE_REST
 	GENERATE_EDIT
 	GENERATE_LIST
+	GENERATE_BE
+	GENERATE_FE
 	GENERATE_SEARCH
 	GENERATE_MIGRATION
 	MIGRATE
@@ -109,11 +120,11 @@ type state struct {
 	projectPath string
 
 	// DATABASE
-	tableName       string
-	tables          []string
-	fieldNames      []string
-	fieldTypes      []string
-	fieldPriorities []string
+	initialInputValue string
+	tables            []string
+	fieldNames        []string
+	fieldTypes        []string
+	fieldPriorities   []string
 }
 
 func (s *state) fields() []Field {
@@ -215,13 +226,13 @@ func (m *model) changeView(itemKey viewItemKey, action action) (tea.Model, tea.C
 	} else if newItem.viewType == MULTI_CHOICE || newItem.viewType == NAVIGATION_CHOICE || newItem.viewType == SINGLE_CHOICE || newItem.viewType == PRIORITY_CHOICE {
 		m.currentItem().items = m.currentItem().loadItems()
 	} else if newItem.viewType == PROGRESS {
-		go func() {
-			err := run()
-			if err != nil {
-				m.err = err
-				m.changeView("error", NO_ACTION)
-			}
-		}()
+		// go func() {
+		err := run()
+		if err != nil {
+			m.err = err
+			m.changeView("error", NO_ACTION)
+		}
+		// }()
 		return m, nil
 	}
 	return m, nil
@@ -241,18 +252,21 @@ func initialModel() *model {
 			"home": {
 				loadItems: func() []*item {
 					items := []*item{
-						{text: "Choices choices", itemType: HEADING},
-						{text: "Create New Project", key: "enterProjectName", action: SCAFFOLD_PROJECT},
+						{text: "Create", itemType: HEADING},
 					}
 
 					if isEnvPresent {
-						items = append(items, &item{text: "Make database changes", key: "database"})
-						items = append(items, &item{text: "Generate REST & UI templates", key: "alt"})
-						items = append(items, &item{text: "Create Search", key: "selectTableForSearch"})
+						items = append(items, &item{text: "Database", key: "database"})
+						items = append(items, &item{text: "Scaffold", key: "alt"})
+					}
+					if isEnvPresent {
+						items = append(items, &item{text: "Migrate", itemType: HEADING})
+						items = append(items, &item{text: "Run Migration", key: "end", action: MIGRATE})
 					}
 
+					items = append(items, &item{text: "New", itemType: HEADING})
+					items = append(items, &item{text: "New Project", key: "enterProjectName", action: SCAFFOLD_PROJECT})
 					return items
-					//Enter key : "enterTableName"
 				},
 				viewType: NAVIGATION_CHOICE,
 			},
@@ -262,11 +276,18 @@ func initialModel() *model {
 			"alt": {
 				loadItems: func() []*item {
 					return []*item{
+						{text: "Backend", itemType: HEADING},
+						{text: "Proto", action: GENERATE_PROTO, key: "selectTables"},
+						{text: "RPC", action: GENERATE_RPC, key: "selectTables"},
 						{text: "Model", action: GENERATE_MODEL, key: "selectTables"},
-						{text: "Actions", action: GENERATE_REST, key: "selectTables"},
+						// {text: "Actions", action: GENERATE_REST, key: "selectTables"},
+						{text: "ALL", action: GENERATE_BE, key: "selectTables"},
+
+						{text: "Frontend", itemType: HEADING},
 						{text: "List Page", action: GENERATE_LIST, key: "selectTables"},
 						{text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
 						{text: "API", action: GENERATE_API, key: "selectTables"},
+						{text: "ALL", action: GENERATE_FE, key: "selectTables"},
 						// {text: "API"},
 					}
 					//Enter key : "enterTableName"
@@ -293,16 +314,17 @@ func initialModel() *model {
 				loadItems: func() []*item {
 					return []*item{
 						{text: "Database", itemType: HEADING},
+						{text: "Blank Migration", key: "enterMigrationDescription", action: CREATE_MIGRATION},
 						{text: "New Table", key: "enterTableName", action: CREATE_TABLE},
-						{text: "Delete Table", key: "selectTables"},
-						{text: "Migrate", key: "end", action: MIGRATE},
+						{text: "Delete Table", key: "selectTables", action: DELETE_TABLE},
+						{text: "Create Search", key: "selectTableForSearch"},
 					}
 				},
 				viewType: NAVIGATION_CHOICE,
 			},
 			"selectTable": {
 				process: func(m *model) {
-					localstate.tableName = m.selection
+					localstate.initialInputValue = m.selection
 				},
 				loadItems: func() []*item {
 					items := make([]*item, 0)
@@ -311,6 +333,7 @@ func initialModel() *model {
 						select table_name from information_schema.tables
 						where table_schema = 'public'
 					`)
+					items = append(items, &item{text: "Select a Table", itemType: HEADING})
 
 					for _, row := range rows {
 						items = append(items, &item{
@@ -326,7 +349,7 @@ func initialModel() *model {
 			},
 			"selectTableForSearch": {
 				process: func(m *model) {
-					localstate.tableName = m.selection
+					localstate.initialInputValue = m.selection
 				},
 				loadItems: func() []*item {
 					items := make([]*item, 0)
@@ -364,10 +387,11 @@ func initialModel() *model {
 					getDBConnection().DB.Select(&rows, `
 					select column_name from information_schema.columns
 					where table_schema = 'public'
-					and table_name = '`+localstate.tableName+`'
+					and table_name = '`+localstate.initialInputValue+`'
 					and column_name <> 'tsv'
 					order by column_name
 					`)
+					items = append(items, &item{text: "Assign Priority to Search", itemType: HEADING})
 
 					for _, row := range rows {
 						items = append(items, &item{
@@ -396,6 +420,7 @@ func initialModel() *model {
 						select table_name from information_schema.tables
 						where table_schema = 'public'
 					`)
+					items = append(items, &item{text: "Select Tables", itemType: HEADING})
 
 					for _, row := range rows {
 						items = append(items, &item{
@@ -409,12 +434,20 @@ func initialModel() *model {
 				viewKey:  "end",
 				viewType: MULTI_CHOICE,
 			},
+			"enterMigrationDescription": {
+				viewType: INPUT,
+				question: "Description of Migration",
+				viewKey:  "end",
+				process: func(m *model) {
+					localstate.initialInputValue = m.input.Value()
+				},
+			},
 			"enterTableName": {
 				viewType: INPUT,
 				question: "Table Name?",
 				viewKey:  "enterFieldName",
 				process: func(m *model) {
-					localstate.tableName = m.input.Value()
+					localstate.initialInputValue = m.input.Value()
 				},
 			},
 			"enterFieldName": {
@@ -481,20 +514,21 @@ func main() {
 	if err := dotenv.Load(); err == nil {
 		isEnvPresent = true
 	}
-	if err := dotenv.Load("./rest/.env"); err == nil {
+	if err := dotenv.Load("./rpc/.env"); err == nil {
 		isEnvPresent = true
 	}
 
+	dotenv.Load(".builder.env")
 	// if !isEnvPresent {
 	// 	fmt.Printf("Failed to load .env file")
 	// 	os.Exit(1)
 	// }
 
 	localstate = &state{
-		actions:    make([]action, 0),
-		tableName:  "",
-		fieldNames: make([]string, 0),
-		fieldTypes: make([]string, 0),
+		actions:           make([]action, 0),
+		initialInputValue: "",
+		fieldNames:        make([]string, 0),
+		fieldTypes:        make([]string, 0),
 	}
 
 	p := tea.NewProgram(initialModel())
@@ -640,7 +674,7 @@ func (m *model) View() string {
 	}
 
 	viewType := m.currentItem().viewType
-	s := string(viewType) + BREAK
+	s := ""
 	// return "\n" +
 	// pad + helpStyle("Press any key to quit")
 	if viewType == END {
@@ -674,7 +708,7 @@ func (m *model) View() string {
 
 			line := choice.text
 			if choice.itemType == HEADING {
-				line = subheadingStyle.Render(choice.text) + BREAK // IGNORING
+				line = headingStyle.Render(choice.text) + BREAK // IGNORING
 			} else if choice.itemType == CHOICE {
 				// Is this choice selected?
 				checked := " " // not selected
@@ -704,6 +738,7 @@ func (m *model) View() string {
 		}
 	}
 
+	s += endOf.Render("") // IGNORING
 	// Send the UI for rendering
 	return s
 }
@@ -713,8 +748,10 @@ func run() (err error) {
 	for _, action := range localstate.actions {
 		if action == SCAFFOLD_PROJECT {
 			err = createProject(localstate.projectName, localstate.projectPath)
+		} else if action == CREATE_MIGRATION {
+			err = createBlankMigration(localstate.initialInputValue, render, getDBConnection())
 		} else if action == CREATE_TABLE {
-			err = createTable(localstate.tableName, localstate.fields(), render, getDBConnection())
+			err = createTable(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
 		} else if action == ADD_FIELDS {
 			for _, tableName := range localstate.tables {
 				err = addFields(tableName, localstate.fields(), render, getDBConnection())
@@ -726,6 +763,14 @@ func run() (err error) {
 		} else if action == GENERATE_MODEL {
 			for _, tableName := range localstate.tables {
 				err = createModel(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_PROTO {
+			for _, tableName := range localstate.tables {
+				err = createProto(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_RPC {
+			for _, tableName := range localstate.tables {
+				err = createRPC(tableName, render, getDBConnection())
 			}
 		} else if action == GENERATE_REST {
 			for _, tableName := range localstate.tables {
@@ -739,8 +784,26 @@ func run() (err error) {
 			for _, tableName := range localstate.tables {
 				err = createList(tableName, render, getDBConnection())
 			}
+		} else if action == GENERATE_BE {
+			for _, tableName := range localstate.tables {
+				if err = createProto(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+				if err = createModel(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+				if err = createRPC(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+			}
+		} else if action == GENERATE_FE {
+			for _, tableName := range localstate.tables {
+				err = createEdit(tableName, render, getDBConnection())
+				err = createList(tableName, render, getDBConnection())
+				err = createAPI(tableName, render, getDBConnection())
+			}
 		} else if action == GENERATE_SEARCH {
-			err = createSearch(localstate.tableName, localstate.fields(), render, getDBConnection())
+			err = createSearch(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
 		} else if action == MIGRATE {
 			err = doMigration(render, getDBConnection())
 		}

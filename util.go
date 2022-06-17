@@ -29,7 +29,8 @@ func getRenderer() *render.Render {
 		Directory: tmplDir,
 		Funcs: []template.FuncMap{
 			template.FuncMap{
-				"jsesc": toJS,
+				"jsesc":     toJS,
+				"nextIndex": nextIndex,
 			},
 		},
 	})
@@ -89,6 +90,11 @@ func newViewBucket() *viewBucket {
 		"LTEqStr":     template.HTML(`<=`),
 		"GTEqStr":     template.HTML(`>=`),
 		"LTStr":       template.HTML(`<`),
+		"GTStr":       template.HTML(`>`),
+		"LTEq":        template.HTML(`<=`),
+		"GTEq":        template.HTML(`>=`),
+		"LT":          template.HTML(`<`),
+		"GT":          template.HTML(`>`),
 		"LEFT_BRACE":  template.JS(`{`),
 		"RIGHT_BRACE": template.JS(`}`),
 	}}
@@ -96,6 +102,10 @@ func newViewBucket() *viewBucket {
 
 func toJS(s string) template.JS {
 	return template.JS(s)
+}
+
+func nextIndex(i int) int {
+	return i + 1
 }
 
 func (viewBucket *viewBucket) add(key string, value interface{}) {

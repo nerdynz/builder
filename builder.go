@@ -10,6 +10,7 @@ import (
 
 	"github.com/nerdynz/helpers"
 	"github.com/pinzolo/casee"
+	"github.com/sirupsen/logrus"
 
 	"bytes"
 
@@ -55,10 +56,11 @@ func (slice descriptions) Swap(i int, j int) {
 }
 
 type Child struct {
-	CamelName       string
-	TableName       string
-	PluralName      string
-	PluralCamelName string
+	CamelName            string
+	TableName            string
+	PluralName           string
+	PluralCamelName      string
+	TableNamePluralCamel string
 }
 
 type Field struct {
@@ -132,6 +134,14 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 	return nil
 }
 
+func createBlankMigration(migrationName string, r *render.Render, db *runner.DB) error {
+	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", casee.ToCamelCase(migrationName))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func doMigration(r *render.Render, db *runner.DB) error {
 	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations")
 	finalError := ""
@@ -149,34 +159,57 @@ func doMigration(r *render.Render, db *runner.DB) error {
 }
 
 func createAPI(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-api", "./spa/src/api/", ":TableNameCamel.ts")
+	return createSomething(tableName, nil, r, db, "create-api", "./spa/src/api/", ":TableNameCamel.tmp.ts", true)
+}
+
+func createProto(tableName string, r *render.Render, db *runner.DB) error {
+	return createSomething(tableName, nil, r, db, "create-proto", "./proto/", ":TableName.tmp.proto", true)
 }
 
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-model", "./rest/models/", ":TableNameCamel.go.tmp")
+	return createSomething(tableName, nil, r, db, "create-model", "./rpc/", ":TableNameCamel.helper.go", true)
 }
 
+// func createModel(tableName string, r *render.Render, db *runner.DB) error {
+// 	return createSomething(tableName, nil, r, db, "create-model", "./rest/models", ":TableNameCamel.helper.tmp.go", true)
+// }
+
 func createRest(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-rest", "./rest/actions/", ":TableNameCamelPlural.go.tmp")
+	return createSomething(tableName, nil, r, db, "create-rest", "./rest/actions/", ":TableNameCamelPlural.tmp.go", true)
+}
+
+func createRPC(tableName string, r *render.Render, db *runner.DB) error {
+	if _, err := os.Stat("./proto/:TableName.proto"); os.IsNotExist(err) {
+		err := createProto(tableName, r, db)
+		if err != nil {
+			return err
+		}
+	}
+
+	protoName := tableName + ".proto"
+	goSrc := os.Getenv("GOPATH") + "/src"
+	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
+
+	// INSERT struct tags
+	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
+	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
+
+	return createSomething(tableName, nil, r, db, "create-rpc", "./rpc/", ":TableNameCamel.rpc.tmp.go", true)
 }
 
 func createList(tableName string, r *render.Render, db *runner.DB) error {
-	err := createSomethingNoDiff(tableName, nil, r, db, "create-list-index", "./spa/src/views/:TableNameCamelPlural/", "index.vue", true)
-	if err != nil {
-		return err
-	}
-	return createSomething(tableName, nil, r, db, "create-list", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelList.vue.tmp")
+	// err := createSomething(tableName, nil, r, db, "create-list-index", "./spa/src/views/:TableNameCamelPlural/", "index.vue", false)
+	// if err != nil {
+	// 	return err
+	// }
+	return createSomething(tableName, nil, r, db, "create-list", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelList.tmp.vue", true)
 }
 
 func createEdit(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-edit", "./spa/views/:TableNameCamelPlural/_ID/", ":TableNameCamelEdit.vue.tmp")
+	return createSomething(tableName, nil, r, db, "create-edit", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelEdit.tmp.vue", true)
 }
 
-func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
-	return createSomethingNoDiff(tableName, fields, r, db, tmpl, path, ext, true) // DO I WANT THIS DIFF
-}
-
-func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, skipDiff bool) error {
+func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, diff bool) error {
 	bucket := newViewBucket()
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
@@ -200,18 +233,34 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
 	// bucket.add("TableID", tableID)
 	bucket.add("TableULID", tableULID)
-	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "ULID", -1))
-	bucket.add("TableULIDCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "ULID", -1))
-	bucket.add("TableULIDCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "ULID", -1))
+	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableULIDCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableULIDCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
-	err := db.Select("column_name, data_type, is_nullable, table_name").
+	err := db.Select("column_name, data_type, is_nullable, table_name, udt_name").
 		From("information_schema.columns").
 		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName). // field excluse
 		QueryStructs(&columns)
 	if err != nil {
 		return err
+	}
+	for _, col := range columns {
+		if col.DataType == "USER-DEFINED" {
+			vals := make([]string, 0)
+			err := db.SQL(`		
+			select e.enumlabel::text as enum_value
+			from pg_type t 
+				 join pg_enum e on t.oid = e.enumtypid  
+				 join pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+				where t.typname = $1
+			`, col.UDTName).QuerySlice(&vals)
+			if err != nil {
+				return err
+			}
+			col.EnumValues = vals
+		}
 	}
 
 	colsDBConcat := `"`
@@ -232,8 +281,10 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	bucket.add("ColumnsDBStrings", template.HTML(colsDBConcat))
 	bucket.add("ColumnsRecordPrefixedStrings", colsRecordPrefixedConcat)
 
+	//child columns????
 	columns = []*ColumnInfo{}
-	err = db.Select("column_name, data_type, is_nullable, table_name").
+
+	err = db.Select("column_name, data_type, is_nullable, table_name, udt_name").
 		From("information_schema.columns").
 		Where("table_schema = $1 and column_name = $2 and column_name <> 'tsv' and table_name <> $3", "public", tableULID, tableName).
 		QueryStructs(&columns)
@@ -242,29 +293,41 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	}
 	childrenTableNames := make([]Child, 0)
 	for _, col := range columns {
-		colName := casee.ToPascalCase(col.TableName)
-		colNamePlural := inflection.Plural(colName)
+		tableName := casee.ToPascalCase(col.TableName)
+		tableNamePlural := inflection.Plural(tableName)
 		childrenTableNames = append(childrenTableNames, Child{
-			PluralName:      colNamePlural,
-			TableName:       colName,
-			CamelName:       casee.ToCamelCase(colName),
-			PluralCamelName: inflection.Plural(colName),
+			PluralName:           tableNamePlural,
+			TableName:            tableName,
+			CamelName:            casee.ToCamelCase(tableName),
+			PluralCamelName:      inflection.Plural(tableName),
+			TableNamePluralCamel: inflection.Plural(tableName),
 		})
 	}
 
 	bucket.add("Children", childrenTableNames)
 
 	folderPath := strings.Replace(path, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
+	folderPath = strings.Replace(folderPath, ":TableNameCamel", casee.ToCamelCase(tableName), -1)
+	folderPath = strings.Replace(folderPath, ":TableName", tableName, -1)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
+	ext = strings.Replace(ext, ":TableName", tableName, -1)
 	ext = strings.Replace(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID), -1)
-	fullpath := folderPath + ext
+	tempFileFullPath := folderPath + ext
 
-	fo, err := os.Create(fullpath)
+	resultingCodeFileAlreadyExists := true
+	notTempFileFullPath := strings.Replace(tempFileFullPath, ".tmp", "", 1)
+	if _, err := os.Stat(notTempFileFullPath); os.IsNotExist(err) {
+		// resulting file won't include tmp and will be ready to use as an existing file isn't already there
+		resultingCodeFileAlreadyExists = false
+		tempFileFullPath = notTempFileFullPath
+	}
+
+	fo, err := os.Create(tempFileFullPath)
 	if err != nil {
 		return err
 	}
@@ -287,27 +350,41 @@ func createSomethingNoDiff(tableName string, fields Fields, r *render.Render, db
 	if err := fo.Close(); err != nil {
 		return err
 	}
-	fullpathNoTemp := strings.Replace(fullpath, ".tmp", "", 1)
-	skip := true
-	// skip := c.Bool("skip") || skipDiff
-	if !skip {
-		diffCommand := os.Getenv("DIFF_COMMAND")
-		if diffCommand == "" {
-			diffCommand = "bcomp"
-		}
-		err = exec.Command(diffCommand, fullpath, fullpathNoTemp).Run()
+	if filepath.Ext(tempFileFullPath) == ".go" {
+		err := exec.Command("/opt/homebrew/bin/gofmt", "-s", "-w", tempFileFullPath).Run()
 		if err != nil {
 			return err
+		}
+	}
+
+	if resultingCodeFileAlreadyExists {
+		err = os.Rename(tempFileFullPath, notTempFileFullPath+".tmp")
+		if err != nil {
+			return err
+		}
+		tempFileFullPath = notTempFileFullPath + ".tmp" // swap the tmp back to the end of the file to stop compliation errors
+
+		skip := os.Getenv("SKIP_DIFF") == "true" // This should be always rather than skip diff
+		if !skip && diff {
+			go func() {
+				diffCommand := os.Getenv("DIFF_COMMAND")
+				if diffCommand == "" {
+					diffCommand = "bcomp"
+				}
+				_ = exec.Command(diffCommand, tempFileFullPath, notTempFileFullPath).Run() // dont care if it errors
+			}()
 		}
 	}
 	return nil
 }
 
 type ColumnInfo struct {
-	ColumnName string `db:"column_name"`
-	TableName  string `db:"table_name"`
-	DataType   string `db:"data_type"`
-	IsNullable string `db:"is_nullable"`
+	ColumnName string   `db:"column_name"`
+	TableName  string   `db:"table_name"`
+	DataType   string   `db:"data_type"`
+	UDTName    string   `db:"udt_name"`
+	IsNullable string   `db:"is_nullable"`
+	EnumValues []string `db:"enum_values"`
 }
 
 func (colInfo *ColumnInfo) Label() string {
@@ -342,10 +419,17 @@ func (colInfo *ColumnInfo) IsDefault() bool {
 
 func (colInfo *ColumnInfo) ColumnNamePascal() string {
 	if colInfo.ColumnName == "ulid" {
-		return "ULID"
+		return "Ulid"
 	}
 	s := casee.ToPascalCase(colInfo.ColumnName)
-	s = strings.Replace(s, "Ulid", "ULID", -1)
+	return s
+}
+
+func (colInfo *ColumnInfo) ColumnNameSnake() string {
+	if colInfo.ColumnName == "ulid" {
+		return "ulid"
+	}
+	s := casee.ToSnakeCase(colInfo.ColumnName)
 	return s
 }
 
@@ -358,7 +442,6 @@ func (colInfo *ColumnInfo) ColumnNameCamel() string {
 		return "ULID"
 	}
 	s := casee.ToCamelCase(colInfo.ColumnNamePascal())
-	s = strings.Replace(s, "Ulid", "ULID", -1)
 	return s
 }
 
@@ -366,7 +449,7 @@ func (colInfo *ColumnInfo) ColumnType() string { // VERY GO CENTRIC
 	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
 	// 	return "ULID"
 	// }
-	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" || colInfo.UDTName == "citext" {
 		return "string"
 	}
 	if colInfo.DataType == "uuid" {
@@ -381,6 +464,30 @@ func (colInfo *ColumnInfo) ColumnType() string { // VERY GO CENTRIC
 	if colInfo.DataType == "timestamp with time zone" {
 		return "time.Time"
 	}
+	if colInfo.DataType == "USER-DEFINED" {
+		return "enum"
+	}
+	return ""
+}
+func (colInfo *ColumnInfo) ProtoType() string { // VERY GO CENTRIC
+	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+	// 	return "ULID"
+	// }
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" || colInfo.UDTName == "citext" {
+		return "string"
+	}
+	if colInfo.DataType == "uuid" {
+		return "string"
+	}
+	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
+		return "int64"
+	}
+	if colInfo.DataType == "boolean" {
+		return "bool"
+	}
+	if colInfo.DataType == "timestamp with time zone" {
+		return "string"
+	}
 	return ""
 }
 
@@ -388,10 +495,13 @@ func (colInfo *ColumnInfo) JavascriptType() string { // VERY GO CENTRIC
 	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
 	// 	return "ULID"
 	// }
-	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" || colInfo.UDTName == "citext" {
 		return "string"
 	}
 	if colInfo.DataType == "uuid" {
+		return "string"
+	}
+	if colInfo.DataType == "ulid" {
 		return "string"
 	}
 	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
@@ -403,18 +513,25 @@ func (colInfo *ColumnInfo) JavascriptType() string { // VERY GO CENTRIC
 	if colInfo.DataType == "timestamp with time zone" {
 		return "Date"
 	}
+	if colInfo.DataType == "USER-DEFINED" {
+		return "enum"
+	}
 	return ""
 }
+
 func (colInfo *ColumnInfo) JavascriptBlankValue() string { // VERY GO CENTRIC
-	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
-	// 	return "ULID"
+	if strings.Contains(strings.ToLower(colInfo.ColumnName), "site_ulid") {
+		return template.JSEscapeString("siteULID")
+	}
+	if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+		return template.JSEscapeString("ulid()")
+	}
+	if colInfo.DataType == "text" || colInfo.DataType == "character varying" || colInfo.UDTName == "citext" {
+		return template.JSEscapeString(`String()`)
+	}
+	// if colInfo.DataType == "uuid" {
+	// 	return template.JSEscapeString("ulid()")
 	// }
-	if colInfo.DataType == "text" || colInfo.DataType == "character varying" {
-		return "''"
-	}
-	if colInfo.DataType == "uuid" {
-		return "''"
-	}
 	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
 		return "0"
 	}
@@ -422,7 +539,7 @@ func (colInfo *ColumnInfo) JavascriptBlankValue() string { // VERY GO CENTRIC
 		return "false"
 	}
 	if colInfo.DataType == "timestamp with time zone" {
-		return "new Date()"
+		return template.JSEscapeString("new Date()")
 	}
 	return ""
 }
@@ -461,6 +578,9 @@ func (colInfo *ColumnInfo) InputControlType() string {
 	}
 	if colInfo.DataType == "timestamp with time zone" {
 		return "datetime"
+	}
+	if colInfo.DataType == "USER-DEFINED" {
+		return "select"
 	}
 	return ""
 }
@@ -586,4 +706,17 @@ func createProject(projectName string, outpath string) error {
 		return err
 	}
 	return nil
+}
+
+func runCommandOrFatal(name string, arg ...string) {
+	cmd := exec.Command(name, arg...)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
+		logrus.Fatal(fmt.Sprint(err))
+	}
 }
