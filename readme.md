@@ -36,6 +36,17 @@ __ You can change the blueprints to whatever you want, just follow the naming co
 add a `rest/migrations` folder to test migrations
 
 
+## SETTINGS (first run) 
+### to be changed in .builder.env
+- MIGRATION_PATH
+- PROTO_PATH
+- ACTIONS_PATH
+- RPC_PATH
+- SPA_API_PATH
+- SPA_ROUTE_PATH
+- SPA_VIEW_PATH
+- NEW_PROJECT_BASE_DIRECTORY
+
 ## NEEDS CLEANUP
 - case statements and logic are a bit all over the place, first use of bubble tea, so it was a bit of a peacemeal process
 
@@ -51,3 +62,5 @@ e.g.
 `timestamp` becomes `Date` in javascript but `time.Time` in go
 
 This utility doesn't need to be specific to go or javascript, so configuration needs to provide that flexiblity (we are just outputting strings.... its not hard)
+
+

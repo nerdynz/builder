@@ -78,7 +78,7 @@ func createTable(tableName string, fields Fields, r *render.Render, db *runner.D
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "create_"+bucket.getStr("TableName"))
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./rest/migrations"), "create_"+bucket.getStr("TableName"))
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func createSearch(tableName string, fields Fields, r *render.Render, db *runner.
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "search_"+bucket.getStr("TableName"))
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./rest/migrations"), "search_"+bucket.getStr("TableName"))
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", "fields_"+bucket.getStr("TableName"))
+	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./rest/migrations"), "fields_"+bucket.getStr("TableName"))
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 }
 
 func createBlankMigration(migrationName string, r *render.Render, db *runner.DB) error {
-	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations", casee.ToCamelCase(migrationName))
+	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./rest/migrations"), casee.ToCamelCase(migrationName))
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func createBlankMigration(migrationName string, r *render.Render, db *runner.DB)
 }
 
 func doMigration(r *render.Render, db *runner.DB) error {
-	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", "./rest/migrations")
+	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./rest/migrations"))
 	finalError := ""
 	if ok {
 		// sweet
@@ -159,15 +159,16 @@ func doMigration(r *render.Render, db *runner.DB) error {
 }
 
 func createAPI(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-api", "./spa/src/api/", ":TableNameCamel.tmp.ts", true)
+	runCommandOrFatalInDirectory("./spa", "yarn", "twirpscript")
+	return createSomething(tableName, nil, r, db, "create-api", settingOrDefault("SPA_API_PATH", "./spa/src/api/"), ":TableNameCamel.tmp.ts", true)
 }
 
 func createProto(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-proto", "./proto/", ":TableName.tmp.proto", true)
+	return createSomething(tableName, nil, r, db, "create-proto", settingOrDefault("PROTO_PATH", "./proto/"), ":TableName.tmp.proto", true)
 }
 
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-model", "./rpc/", ":TableNameCamel.helper.go", true)
+	return createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameCamel/"), ":TableNameCamel.helper.go", true)
 }
 
 // func createModel(tableName string, r *render.Render, db *runner.DB) error {
@@ -175,18 +176,21 @@ func createModel(tableName string, r *render.Render, db *runner.DB) error {
 // }
 
 func createRest(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-rest", "./rest/actions/", ":TableNameCamelPlural.tmp.go", true)
+	return createSomething(tableName, nil, r, db, "create-rest", settingOrDefault("ACTIONS_PATH", "./rest/actions/"), ":TableNameCamelPlural.tmp.go", true)
 }
 
-func createRPC(tableName string, r *render.Render, db *runner.DB) error {
-	if _, err := os.Stat("./proto/:TableName.proto"); os.IsNotExist(err) {
-		err := createProto(tableName, r, db)
-		if err != nil {
-			return err
-		}
-	}
+func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) error {
+	// if _, err := os.Stat("./proto/:TableName.proto"); os.IsNotExist(err) {
+	// 	err := createProto(tableName, r, db)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
-	protoName := tableName + ".proto"
+	// protoName := tableName + ".proto"
+	tableName := strings.ReplaceAll(protoNameOrTableName, ".proto", "")
+	tableName = helpers.SnakeCase(tableName)
+	protoName := tableName + ".proto" // put it backz
 	goSrc := os.Getenv("GOPATH") + "/src"
 	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
 
@@ -194,19 +198,20 @@ func createRPC(tableName string, r *render.Render, db *runner.DB) error {
 	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
 	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
 
-	return createSomething(tableName, nil, r, db, "create-rpc", "./rpc/", ":TableNameCamel.rpc.tmp.go", true)
+	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameCamel/"), ":TableName.rpc.tmp.go", true)
 }
 
 func createList(tableName string, r *render.Render, db *runner.DB) error {
 	// err := createSomething(tableName, nil, r, db, "create-list-index", "./spa/src/views/:TableNameCamelPlural/", "index.vue", false)
-	// if err != nil {
-	// 	return err
-	// }
-	return createSomething(tableName, nil, r, db, "create-list", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelList.tmp.vue", true)
+	err := createSomething(tableName, nil, r, db, "create-route", settingOrDefault("SPA_ROUTE_PATH", "./spa/src/routes/"), ":TableNamePascalRoute.ts", true)
+	if err != nil {
+		return err
+	}
+	return createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./spa/src/views/:TableNamePascalPlural/"), ":TableNamePascalList.tmp.vue", true)
 }
 
 func createEdit(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-edit", "./spa/src/views/:TableNameCamelPlural/", ":TableNameCamelEdit.tmp.vue", true)
+	return createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/views/:TableNamePascalPlural/"), ":TableNamePascalEdit.tmp.vue", true)
 }
 
 func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, diff bool) error {
@@ -364,16 +369,16 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 		}
 		tempFileFullPath = notTempFileFullPath + ".tmp" // swap the tmp back to the end of the file to stop compliation errors
 
-		skip := os.Getenv("SKIP_DIFF") == "true" // This should be always rather than skip diff
-		if !skip && diff {
-			go func() {
-				diffCommand := os.Getenv("DIFF_COMMAND")
-				if diffCommand == "" {
-					diffCommand = "bcomp"
-				}
-				_ = exec.Command(diffCommand, tempFileFullPath, notTempFileFullPath).Run() // dont care if it errors
-			}()
-		}
+		// skip := os.Getenv("SKIP_DIFF") == "true" // This should be always rather than skip diff
+		// if !skip && diff {
+		// 	go func() {
+		// 		diffCommand := os.Getenv("DIFF_COMMAND")
+		// 		if diffCommand == "" {
+		// 			diffCommand = "bcomp"
+		// 		}
+		// 		_ = exec.Command(diffCommand, tempFileFullPath, notTempFileFullPath).Run() // dont care if it errors
+		// 	}()
+		// }
 	}
 	return nil
 }
@@ -395,6 +400,11 @@ func (colInfo *ColumnInfo) Label() string {
 
 func (colInfo *ColumnInfo) Name() string {
 	colName := casee.ToPascalCase(colInfo.ColumnName)
+	return colName
+}
+
+func (colInfo *ColumnInfo) NameCamelCase() string {
+	colName := casee.ToCamelCase(colInfo.ColumnName)
 	return colName
 }
 
@@ -469,6 +479,7 @@ func (colInfo *ColumnInfo) ColumnType() string { // VERY GO CENTRIC
 	}
 	return ""
 }
+
 func (colInfo *ColumnInfo) ProtoType() string { // VERY GO CENTRIC
 	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
 	// 	return "ULID"
@@ -567,6 +578,18 @@ func (colInfo *ColumnInfo) InputControlType() string {
 		}
 		if strings.Contains(strings.ToLower(colInfo.ColumnName), "text") {
 			return "textarea"
+		}
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "notes") {
+			return "textarea"
+		}
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "site_ulid") {
+			return ""
+		}
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), strings.ToLower(colInfo.TableName)+"_ulid") {
+			return ""
+		}
+		if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+			return "select"
 		}
 		return "text"
 	}
@@ -676,7 +699,7 @@ func replaceNameInFiles(path string, name, replacement string) error {
 }
 
 func createProject(projectName string, outpath string) error {
-	fullpath := build.Default.GOPATH + "/src/github.com/nerdynz/skeleton/"
+	fullpath := build.Default.GOPATH + "/src/" + settingOrDefault("NEW_PROJECT_BASE_DIRECTORY", "github.com/nerdynz/skeleton/")
 	if !strings.Contains(outpath, build.Default.GOPATH) {
 		outpath = build.Default.GOPATH + "/src/" + outpath
 	}
@@ -709,7 +732,14 @@ func createProject(projectName string, outpath string) error {
 }
 
 func runCommandOrFatal(name string, arg ...string) {
+	runCommandOrFatalInDirectory("", name, arg...)
+}
+
+func runCommandOrFatalInDirectory(directory string, name string, arg ...string) {
 	cmd := exec.Command(name, arg...)
+	if directory != "" {
+		cmd.Dir = directory
+	}
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &out
@@ -719,4 +749,12 @@ func runCommandOrFatal(name string, arg ...string) {
 		logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
 		logrus.Fatal(fmt.Sprint(err))
 	}
+}
+
+func settingOrDefault(key string, dflt string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		return dflt
+	}
+	return v
 }

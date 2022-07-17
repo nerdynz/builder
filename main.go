@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"time"
 
@@ -74,6 +76,7 @@ const (
 	GENERATE_EDIT
 	GENERATE_LIST
 	GENERATE_BE
+	GENERATE_EVERYTHING
 	GENERATE_FE
 	GENERATE_SEARCH
 	GENERATE_MIGRATION
@@ -276,10 +279,12 @@ func initialModel() *model {
 			"alt": {
 				loadItems: func() []*item {
 					return []*item{
+						{text: "EVERYTHING", action: GENERATE_EVERYTHING, key: "selectTables"},
+
 						{text: "Backend", itemType: HEADING},
 						{text: "Proto", action: GENERATE_PROTO, key: "selectTables"},
-						{text: "RPC", action: GENERATE_RPC, key: "selectTables"},
 						{text: "Model", action: GENERATE_MODEL, key: "selectTables"},
+						{text: "RPC", action: GENERATE_RPC, key: "selectProtos"},
 						// {text: "Actions", action: GENERATE_REST, key: "selectTables"},
 						{text: "ALL", action: GENERATE_BE, key: "selectTables"},
 
@@ -434,6 +439,37 @@ func initialModel() *model {
 				viewKey:  "end",
 				viewType: MULTI_CHOICE,
 			},
+			"selectProtos": {
+				process: func(m *model) {
+					tables := make([]string, 0)
+					for _, selection := range m.selections {
+						tables = append(tables, selection)
+					}
+					localstate.tables = tables
+				},
+				loadItems: func() []*item {
+					items := make([]*item, 0)
+					files, err := ioutil.ReadDir("./proto")
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					// for _, f := range files {
+					// 	fmt.Println(f.Name())
+					// }
+					items = append(items, &item{text: "Select Protos", itemType: HEADING})
+					for _, f := range files {
+						items = append(items, &item{
+							text:     f.Name(),
+							key:      f.Name(),
+							itemType: CHOICE,
+						})
+					}
+					return items
+				},
+				viewKey:  "end",
+				viewType: MULTI_CHOICE,
+			},
 			"enterMigrationDescription": {
 				viewType: INPUT,
 				question: "Description of Migration",
@@ -511,18 +547,33 @@ var isEnvPresent bool
 func main() {
 	isEnvPresent = false
 	// load from .env file where scaffold is run
-	if err := dotenv.Load(); err == nil {
+	if err := dotenv.Load(".builder.env"); err == nil {
 		isEnvPresent = true
 	}
-	if err := dotenv.Load("./rpc/.env"); err == nil {
-		isEnvPresent = true
+	for i := 1; i <= 5; i++ {
+		if isEnvPresent {
+			break
+		} else {
+			if err := os.Chdir(".."); err != nil {
+				logrus.Fatal("Chdir failed", err)
+			}
+			pw, _ := os.Getwd()
+			logrus.Info("WD =>", pw)
+
+			if err := dotenv.Load(".builder.env"); err == nil {
+				isEnvPresent = true
+			}
+		}
 	}
 
-	dotenv.Load(".builder.env")
-	// if !isEnvPresent {
-	// 	fmt.Printf("Failed to load .env file")
-	// 	os.Exit(1)
+	// if err := dotenv.Load("./rpc/.env"); err == nil {
+	// 	isEnvPresent = true
 	// }
+
+	// dotenv.Load(".builder.env")
+	if !isEnvPresent {
+		logrus.Fatal("Failed to load .env file")
+	}
 
 	localstate = &state{
 		actions:           make([]action, 0),
@@ -798,9 +849,26 @@ func run() (err error) {
 			}
 		} else if action == GENERATE_FE {
 			for _, tableName := range localstate.tables {
+				err = createAPI(tableName, render, getDBConnection())
 				err = createEdit(tableName, render, getDBConnection())
 				err = createList(tableName, render, getDBConnection())
+			}
+		} else if action == GENERATE_BE {
+			for _, tableName := range localstate.tables {
+				if err = createProto(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+				if err = createModel(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+				if err = createRPC(tableName, render, getDBConnection()); err != nil {
+					return err
+				}
+			}
+			for _, tableName := range localstate.tables {
 				err = createAPI(tableName, render, getDBConnection())
+				err = createEdit(tableName, render, getDBConnection())
+				err = createList(tableName, render, getDBConnection())
 			}
 		} else if action == GENERATE_SEARCH {
 			err = createSearch(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
