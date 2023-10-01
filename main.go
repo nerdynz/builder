@@ -279,7 +279,6 @@ func initialModel() *model {
 			"alt": {
 				loadItems: func() []*item {
 					return []*item{
-						{text: "EVERYTHING", action: GENERATE_EVERYTHING, key: "selectTables"},
 
 						{text: "Backend", itemType: HEADING},
 						{text: "Proto", action: GENERATE_PROTO, key: "selectTables"},
@@ -293,6 +292,7 @@ func initialModel() *model {
 						{text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
 						{text: "API", action: GENERATE_API, key: "selectTables"},
 						{text: "ALL", action: GENERATE_FE, key: "selectTables"},
+						{text: "EVERYTHING", action: GENERATE_EVERYTHING, key: "selectTables"},
 						// {text: "API"},
 					}
 					//Enter key : "enterTableName"
@@ -571,9 +571,9 @@ func main() {
 	// }
 
 	// dotenv.Load(".builder.env")
-	if !isEnvPresent {
-		logrus.Fatal("Failed to load .env file")
-	}
+	// if !isEnvPresent {
+	// 	logrus.Fatal("Failed to load .env file")
+	// }
 
 	localstate = &state{
 		actions:           make([]action, 0),
