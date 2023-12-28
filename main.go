@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -100,7 +99,7 @@ const (
 	PRIORITY
 )
 
-/// TODO break this down in to composeable peices based on item type
+// / TODO break this down in to composeable peices based on item type
 type view struct {
 	items     []*item
 	loadItems func() []*item
@@ -232,6 +231,7 @@ func (m *model) changeView(itemKey viewItemKey, action action) (tea.Model, tea.C
 		// go func() {
 		err := run()
 		if err != nil {
+			logrus.Error("err", err)
 			m.err = err
 			m.changeView("error", NO_ACTION)
 		}
@@ -449,7 +449,7 @@ func initialModel() *model {
 				},
 				loadItems: func() []*item {
 					items := make([]*item, 0)
-					files, err := ioutil.ReadDir("./proto")
+					files, err := os.ReadDir("./proto")
 					if err != nil {
 						log.Fatal(err)
 					}

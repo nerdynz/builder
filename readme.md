@@ -17,6 +17,18 @@ It simply connects to the database defined in .env and fills in the tmpl files i
 - TableIDTitle `PersonULID`
 - TableIDCamel `personULID`
 
+## Available template vars
+- LTEqStr `<=`
+- GTEqStr `>=`
+- LTStr `<`
+- GTStr `>`
+- LTEq `<=`
+- GTEq `>=`
+- LT `<`
+- GT `>`
+- LEFT_BRACE `{`
+- RIGHT_BRACE `}`
+
 Currently it generates code for 
 
 - table creation / migrations

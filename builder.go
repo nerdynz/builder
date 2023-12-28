@@ -160,7 +160,7 @@ func doMigration(r *render.Render, db *runner.DB) error {
 }
 
 func createAPI(tableName string, r *render.Render, db *runner.DB) error {
-	runCommandOrFatalInDirectory("./spa", "yarn", "twirpscript")
+	runCommandOrFatalInDirectory("./spa", "pnpm", "twirpscript")
 	return createSomething(tableName, nil, r, db, "create-api", settingOrDefault("SPA_API_PATH", "./spa/src/api/"), ":TableNameCamel.tmp.ts", true)
 }
 
@@ -169,7 +169,7 @@ func createProto(tableName string, r *render.Render, db *runner.DB) error {
 }
 
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameCamel/"), ":TableNameCamel.helper.tmp.go", true)
+	return createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.tmp.go", true)
 }
 
 // func createModel(tableName string, r *render.Render, db *runner.DB) error {
@@ -199,7 +199,7 @@ func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) err
 	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
 	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
 
-	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameCamel/"), ":TableName.rpc.tmp.go", true)
+	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go", true)
 }
 
 func createList(tableName string, r *render.Render, db *runner.DB) error {
@@ -224,6 +224,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	// tableName := bucket.getStr("TableName")
 	tableNamePascal := casee.ToPascalCase(tableName)
 	tableNameCamel := casee.ToCamelCase(tableName)
+	tableNameSnake := strcase.SnakeCase(tableName)
 	tableNameLower := strings.ToLower(tableName)
 	// tableID := tableName + "_id"
 	tableULID := tableName + "_ulid"
@@ -237,6 +238,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	bucket.add("TableNamePluralPascal", inflection.Plural(tableNamePascal))
 	bucket.add("TableNamePluralCamel", inflection.Plural(tableNameCamel))
 	bucket.add("TableNameKebab", strcase.KebabCase(tableName))
+	bucket.add("TableNameSnake", strcase.SnakeCase(tableName))
 	// bucket.add("TableID", tableID)
 	bucket.add("TableULID", tableULID)
 	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
@@ -330,6 +332,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	folderPath = strings.Replace(folderPath, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	folderPath = strings.Replace(folderPath, ":TableNamePascal", tableNamePascal, -1)
 	folderPath = strings.Replace(folderPath, ":TableNameCamel", tableNameCamel, -1)
+	folderPath = strings.Replace(folderPath, ":TableNameSnake", tableNameSnake, -1)
 	folderPath = strings.Replace(folderPath, ":TableName", tableName, -1)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
@@ -339,6 +342,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
 	ext = strings.Replace(ext, ":TableNamePascal", tableNamePascal, -1)
 	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
+	ext = strings.Replace(ext, ":TableNameSnake", tableNameSnake, -1)
 	ext = strings.Replace(ext, ":TableName", tableName, -1)
 	ext = strings.Replace(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID), -1)
 	tempFileFullPath := folderPath + ext
