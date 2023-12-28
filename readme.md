@@ -13,9 +13,9 @@ It simply connects to the database defined in .env and fills in the tmpl files i
 - TableNamePlural `people` `image_metas`
 - TableNamePluralPascal `people` `ImageMetas`
 - TableNamePluralCamel `people` `imageMetas`
-- TableID `person_ulid`
-- TableIDTitle `PersonULID`
-- TableIDCamel `personULID`
+- TableULID `person_ulid`
+- TableULIDPascal `PersonULID`
+- TableULIDCamel `personULID`
 
 ## Available template vars
 - LTEqStr `<=`
