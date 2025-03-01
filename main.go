@@ -288,11 +288,11 @@ func initialModel() *model {
 						{text: "ALL", action: GENERATE_BE, key: "selectTables"},
 
 						{text: "Frontend", itemType: HEADING},
-						{text: "List Page", action: GENERATE_LIST, key: "selectTables"},
-						{text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
+						// {text: "List Page", action: GENERATE_LIST, key: "selectTables"},
+						// {text: "Edit Page", action: GENERATE_EDIT, key: "selectTables"},
 						{text: "API", action: GENERATE_API, key: "selectTables"},
-						{text: "ALL", action: GENERATE_FE, key: "selectTables"},
-						{text: "EVERYTHING", action: GENERATE_EVERYTHING, key: "selectTables"},
+						{text: "FE", action: GENERATE_FE, key: "selectTables"},
+						// {text: "EVERYTHING", action: GENERATE_EVERYTHING, key: "selectTables"},
 						// {text: "API"},
 					}
 					//Enter key : "enterTableName"
@@ -557,8 +557,8 @@ func main() {
 			if err := os.Chdir(".."); err != nil {
 				logrus.Fatal("Chdir failed", err)
 			}
-			pw, _ := os.Getwd()
-			logrus.Info("WD =>", pw)
+			// pw, _ := os.Getwd()
+			// logrus.Info("WD =>", pw)
 
 			if err := dotenv.Load(".builder.env"); err == nil {
 				isEnvPresent = true
@@ -590,7 +590,7 @@ func main() {
 }
 
 func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*300, func(t time.Time) tea.Msg {
+	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
 }
@@ -809,7 +809,7 @@ func run() (err error) {
 			}
 		} else if action == GENERATE_API {
 			for _, tableName := range localstate.tables {
-				err = createAPI(tableName, render, getDBConnection())
+				err = createFeModel(tableName, render, getDBConnection())
 			}
 		} else if action == GENERATE_MODEL {
 			for _, tableName := range localstate.tables {
@@ -849,27 +849,39 @@ func run() (err error) {
 			}
 		} else if action == GENERATE_FE {
 			for _, tableName := range localstate.tables {
-				err = createAPI(tableName, render, getDBConnection())
-				err = createEdit(tableName, render, getDBConnection())
-				err = createList(tableName, render, getDBConnection())
-			}
-		} else if action == GENERATE_BE {
-			for _, tableName := range localstate.tables {
-				if err = createProto(tableName, render, getDBConnection()); err != nil {
+				// if err = createFeModel(tableName, render, getDBConnection()); err != nil {
+				// 	return err
+				// }
+				if err = createEdit(tableName, render, getDBConnection()); err != nil {
 					return err
 				}
-				if err = createModel(tableName, render, getDBConnection()); err != nil {
-					return err
-				}
-				if err = createRPC(tableName, render, getDBConnection()); err != nil {
+				if err = createList(tableName, render, getDBConnection()); err != nil {
 					return err
 				}
 			}
-			for _, tableName := range localstate.tables {
-				err = createAPI(tableName, render, getDBConnection())
-				err = createEdit(tableName, render, getDBConnection())
-				err = createList(tableName, render, getDBConnection())
-			}
+			// } else if action == GENERATE_EVERYTHING { // clean up if re-added
+			// 	for _, tableName := range localstate.tables {
+			// 		if err = createProto(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 		if err = createModel(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 		if err = createRPC(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 	}
+			// 	for _, tableName := range localstate.tables {
+			// 		if err = createFeModel(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 		if err = createEdit(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 		if err = createList(tableName, render, getDBConnection()); err != nil {
+			// 			return err
+			// 		}
+			// 	}
 		} else if action == GENERATE_SEARCH {
 			err = createSearch(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
 		} else if action == MIGRATE {
@@ -878,131 +890,3 @@ func run() (err error) {
 	}
 	return err
 }
-
-// // needs refactor
-// func runActions(actions []string) {
-// 	app := cli.NewApp()
-// 	app.Name = "builder"
-// 	app.Usage = "code generation"
-// 	flags := []cli.Flag{
-// 		cli.StringFlag{
-// 			Name:  "skip",
-// 			Usage: "skip bcomp diff",
-// 		},
-// 	}
-// 	// app.Flags = flags
-// 	app.Commands = []cli.Command{
-// 		{
-// 			Name:    "scaffold",
-// 			Aliases: []string{"s"},
-// 			Usage:   "Create a new project [projectname] [project path]",
-// 			Action: func(c *cli.Context) error {
-// 				return createProject(c, render)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "table",
-// 			Aliases: []string{"t"},
-// 			Usage:   "Create a new table [tablename] [fieldname:fieldtype:fielddefault]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return createTable(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "fields",
-// 			Aliases: []string{"f"},
-// 			Usage:   "Add fields to an existing table [tablename] [fieldname:fieldtype:fielddefault]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return addFields(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "model",
-// 			Aliases: []string{"m"},
-// 			Usage:   "create a model from a table [tablename]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return createModel(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "rest",
-// 			Aliases: []string{"r"},
-// 			Usage:   "create a restful interface from a table [tablename]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return createRest(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "edit",
-// 			Aliases: []string{"e"},
-// 			Usage:   "create a edit page from a table [tablename]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return createEdit(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "list",
-// 			Aliases: []string{"l"},
-// 			Usage:   "create a list page from a table [tablename]",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					return err
-// 				}
-// 				db := getDBConnection()
-// 				return createList(c, render, db)
-// 			},
-// 			Flags: flags,
-// 		},
-// 		{
-// 			Name:    "migration",
-// 			Aliases: []string{"mi"},
-// 			Usage:   "perform schema migration",
-// 			Action: func(c *cli.Context) error {
-// 				err := dotenv.Load() // load from .env file where scaffold is run
-// 				if err != nil {
-// 					panic(err)
-// 				}
-// 				db := getDBConnection()
-// 				err = doMigration(c, render, db)
-// 				if err != nil {
-// 					panic(err)
-// 				}
-// 				return err
-// 			},
-// 			Flags: flags,
-// 		},
-// 	}
-// 	app.Run(os.Args)
-// }

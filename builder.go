@@ -159,25 +159,45 @@ func doMigration(r *render.Render, db *runner.DB) error {
 	return nil
 }
 
-func createAPI(tableName string, r *render.Render, db *runner.DB) error {
-	runCommandOrFatalInDirectory("./spa", "pnpm", "twirpscript")
-	return createSomething(tableName, nil, r, db, "create-api", settingOrDefault("SPA_API_PATH", "./spa/src/api/"), ":TableNameCamel.tmp.ts", true)
+func createFeModel(tableName string, r *render.Render, db *runner.DB) error {
+	_, err := createProtoAndTwirpBindings(tableName)
+	if err != nil {
+		return err
+	}
+	return createSomething(tableName, nil, r, db, "create-fe-model", settingOrDefault("SPA_API_PATH", "./app/src/:TableNameCamel/"), ":TableNameCamel.model.tmp.ts")
 }
 
 func createProto(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-proto", settingOrDefault("PROTO_PATH", "./proto/"), ":TableName.tmp.proto", true)
+	return createSomething(tableName, nil, r, db, "create-proto", settingOrDefault("PROTO_PATH", "./proto/"), ":TableName.tmp.proto")
 }
 
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.tmp.go", true)
+	createProtoAndTwirpBindings(tableName)
+	createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.tmp.go")
+	return createSomething(tableName, nil, r, db, "create-model-helper", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.go")
 }
 
 // func createModel(tableName string, r *render.Render, db *runner.DB) error {
-// 	return createSomething(tableName, nil, r, db, "create-model", "./rest/models", ":TableNameCamel.helper.tmp.go", true)
+// 	return createSomething(tableName, nil, r, db, "create-model", "./rest/models", ":TableNameCamel.helper.tmp.go")
 // }
 
 func createRest(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-rest", settingOrDefault("ACTIONS_PATH", "./rest/actions/"), ":TableNameCamelPlural.tmp.go", true)
+	return createSomething(tableName, nil, r, db, "create-rest", settingOrDefault("ACTIONS_PATH", "./rest/actions/"), ":TableNameCamelPlural.tmp.go")
+}
+
+func createProtoAndTwirpBindings(protoNameOrTableName string) (string, error) {
+	tableName := strings.ReplaceAll(protoNameOrTableName, ".proto", "")
+	tableName = helpers.SnakeCase(tableName)
+	protoName := tableName + ".proto" // put it backz
+	goSrc := os.Getenv("GOPATH") + "/src"
+	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
+
+	// INSERT struct tags
+	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
+	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
+
+	runCommandOrFatalInDirectory("./app", "bun", "twirpscript")
+	return tableName, nil
 }
 
 func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) error {
@@ -189,33 +209,39 @@ func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) err
 	// }
 
 	// protoName := tableName + ".proto"
-	tableName := strings.ReplaceAll(protoNameOrTableName, ".proto", "")
-	tableName = helpers.SnakeCase(tableName)
-	protoName := tableName + ".proto" // put it backz
-	goSrc := os.Getenv("GOPATH") + "/src"
-	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
-
-	// INSERT struct tags
-	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
-	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
-
-	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go", true)
-}
-
-func createList(tableName string, r *render.Render, db *runner.DB) error {
-	// err := createSomething(tableName, nil, r, db, "create-list-index", "./spa/src/views/:TableNameCamelPlural/", "index.vue", false)
-	err := createSomething(tableName, nil, r, db, "create-route", settingOrDefault("SPA_ROUTE_PATH", "./spa/src/router/"), ":TableNameCamelRoute.ts", true)
+	tableName, err := createProtoAndTwirpBindings(protoNameOrTableName)
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./spa/src/views/:TableNameCamelPlural/"), ":TableNamePascalList.tmp.vue", true)
+
+	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go")
+}
+
+func createList(tableName string, r *render.Render, db *runner.DB) error {
+	// err := createSomething(tableName, nil, r, db, "create-routes", settingOrDefault("SPA_ROUTE_PATH", "./app/src/:TableNameCamel/"), ":TableNameCamel.routes.tmp.ts")
+	// if err != nil {
+	// 	return err
+	// }
+	err := createSomething(tableName, nil, r, db, "create-list-edit", settingOrDefault("SPA_ROUTE_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalListEditView.vue")
+	if err != nil {
+		return err
+	}
+	return createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalListView.vue")
 }
 
 func createEdit(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/views/:TableNameCamelPlural/"), ":TableNamePascalEdit.tmp.vue", true)
+	err := createSomething(tableName, nil, r, db, "create-multiedit-line", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalMultiEditLineView.vue")
+	if err != nil {
+		return err
+	}
+	err = createSomething(tableName, nil, r, db, "create-multiedit", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalMultiEditView.vue")
+	if err != nil {
+		return err
+	}
+	return createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalEditView.vue")
 }
 
-func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string, diff bool) error {
+func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
 	bucket := newViewBucket()
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
@@ -224,6 +250,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	// tableName := bucket.getStr("TableName")
 	tableNamePascal := casee.ToPascalCase(tableName)
 	tableNameCamel := casee.ToCamelCase(tableName)
+	tableNameTitle := strings.Title(tableName)
 	tableNameSnake := strcase.SnakeCase(tableName)
 	tableNameLower := strings.ToLower(tableName)
 	// tableID := tableName + "_id"
@@ -233,6 +260,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	bucket.add("TableNameSpaces", tnJnt)
 	bucket.add("TableNamePascal", tableNamePascal)
 	bucket.add("TableNameCamel", tableNameCamel)
+	bucket.add("TableNameTitle", tableNameTitle)
 	bucket.add("TableNameLower", tableNameLower)
 	bucket.add("TableNamePlural", inflection.Plural(tableNameLower))
 	bucket.add("TableNamePluralPascal", inflection.Plural(tableNamePascal))
@@ -244,6 +272,11 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
 	bucket.add("TableULIDCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
 	bucket.add("TableULIDCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
+
+	bucket.add("TableUlid", tableULID)
+	bucket.add("TableUlidPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableUlidCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableUlidCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
@@ -298,9 +331,11 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	}
 	bucket.add("Columns", columns)
 	bucket.add("ColumnsCommaSeperated", colsCommaSeperated)
-	bucket.add("ColumnsCommaSeperatedExclusionUpdate", columnsCommaSeperatedExclusionUpdate)
-	bucket.add("ColumnsCommaSeperatedPlaceholders", colsParamPlaceholders)
+	bucket.add("ColumnsStringCommaSeperated", template.HTML(colsDBConcat))
 	bucket.add("ColumnsDBStrings", template.HTML(colsDBConcat))
+	bucket.add("ColumnsCommaSeperatedExclusionUpdate", columnsCommaSeperatedExclusionUpdate)
+	bucket.add("ColumnsUpsertConflictPairs", columnsCommaSeperatedExclusionUpdate)
+	bucket.add("ColumnsCommaSeperatedPlaceholders", colsParamPlaceholders)
 	bucket.add("ColumnsRecordPrefixedStrings", colsRecordPrefixedConcat)
 
 	//child columns????
@@ -347,13 +382,18 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	ext = strings.Replace(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID), -1)
 	tempFileFullPath := folderPath + ext
 
-	resultingCodeFileAlreadyExists := true
+	// resultingCodeFileAlreadyExists := true
 	notTempFileFullPath := strings.Replace(tempFileFullPath, ".tmp", "", 1)
 	if _, err := os.Stat(notTempFileFullPath); os.IsNotExist(err) {
 		// resulting file won't include tmp and will be ready to use as an existing file isn't already there
-		resultingCodeFileAlreadyExists = false
+		// resultingCodeFileAlreadyExists = false
 		tempFileFullPath = notTempFileFullPath
 	}
+
+	// if resultingCodeFileAlreadyExists && ignoreIfExists {
+	// 	/// do nothing
+	// 	return nil
+	// }
 
 	fo, err := os.Create(tempFileFullPath)
 	if err != nil {
@@ -385,24 +425,6 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 		}
 	}
 
-	if resultingCodeFileAlreadyExists {
-		err = os.Rename(tempFileFullPath, notTempFileFullPath+".tmp")
-		if err != nil {
-			return err
-		}
-		tempFileFullPath = notTempFileFullPath + ".tmp" // swap the tmp back to the end of the file to stop compliation errors
-
-		// skip := os.Getenv("SKIP_DIFF") == "true" // This should be always rather than skip diff
-		// if !skip && diff {
-		// 	go func() {
-		// 		diffCommand := os.Getenv("DIFF_COMMAND")
-		// 		if diffCommand == "" {
-		// 			diffCommand = "bcomp"
-		// 		}
-		// 		_ = exec.Command(diffCommand, tempFileFullPath, notTempFileFullPath).Run() // dont care if it errors
-		// 	}()
-		// }
-	}
 	return nil
 }
 
@@ -504,9 +526,9 @@ func (colInfo *ColumnInfo) ColumnType() string { // VERY GO CENTRIC
 }
 
 func (colInfo *ColumnInfo) ProtoType() string { // VERY GO CENTRIC
-	// if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
-	// 	return "ULID"
-	// }
+	if strings.Contains(strings.ToLower(colInfo.ColumnName), "ulid") {
+		return "string"
+	}
 	if colInfo.DataType == "text" || colInfo.DataType == "character varying" || colInfo.UDTName == "citext" {
 		return "string"
 	}
@@ -514,7 +536,7 @@ func (colInfo *ColumnInfo) ProtoType() string { // VERY GO CENTRIC
 		return "string"
 	}
 	if colInfo.DataType == "integer" || colInfo.DataType == "numeric" {
-		return "int64"
+		return "int32"
 	}
 	if colInfo.DataType == "boolean" {
 		return "bool"
@@ -522,7 +544,7 @@ func (colInfo *ColumnInfo) ProtoType() string { // VERY GO CENTRIC
 	if colInfo.DataType == "timestamp with time zone" {
 		return "string"
 	}
-	return ""
+	return "string"
 }
 
 func (colInfo *ColumnInfo) JavascriptType() string { // VERY GO CENTRIC
@@ -706,7 +728,7 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 			newContents = strings.Replace(string(read), "Skeleton", name, -1)
 			newContents = strings.Replace(newContents, "skeleton", name, -1)
 		} else {
-			newContents = strings.Replace(string(read), "github.com/nerdynz/skeleton/", replacement, -1)
+			newContents = strings.Replace(string(read), "github.com/nerdynz/", replacement, -1)
 		}
 
 		if newContents != "" {
@@ -719,15 +741,33 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 	return nil
 }
 
-func replaceNameInFiles(path, name, replacement string) error {
-	// fmt.Println("path:" + path + "    replacement:" + replacement)
-	err := filepath.Walk(path, func(path string, fi os.FileInfo, err error) error {
-		return visit(path, name, replacement, fi, err)
+func replaceTextInFiles(directory, oldText, newText string) error {
+	return filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		// Read file content
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("could not read file %s: %w", path, err)
+		}
+
+		// Replace the old text with the new text
+		newContent := bytes.Replace(content, []byte(oldText), []byte(newText), -1)
+
+		// Write updated content back to the file
+		err = ioutil.WriteFile(path, newContent, info.Mode())
+		if err != nil {
+			return fmt.Errorf("could not write file %s: %w", path, err)
+		}
+
+		fmt.Printf("Replaced '%s' with '%s' in %s\n", oldText, newText, path)
+		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func createProject(projectName string, outpath string) error {
@@ -738,17 +778,21 @@ func createProject(projectName string, outpath string) error {
 	if !strings.HasSuffix(outpath, "/") {
 		outpath += "/"
 	}
-	projectReplace := strings.TrimPrefix(outpath, build.Default.GOPATH+"/src/")
+	// projectReplace := strings.TrimPrefix(outpath, build.Default.GOPATH+"/src/")
 	if strings.Contains(projectName, "/") || outpath == build.Default.GOPATH+"/src/" || projectName == "" {
 		return errors.New("Did you specify a project name and path?")
 	}
 
-	err := Copy(fullpath+"skeleton.code-workspace", outpath+projectName+".code-workspace")
+	err := Copy(fullpath+".builder.env", outpath+".builder.env")
+	if err != nil {
+		return err
+	}
+	err = Copy(fullpath+"skeleton.code-workspace", outpath+projectName+".code-workspace")
 	if err != nil {
 		return err
 	}
 
-	folders := []string{"proto", "spa", "blueprints", "rpc"}
+	folders := []string{"proto", "app", "blueprints", "rpc", "site", "tasks"}
 	for _, folder := range folders {
 		// fmt.Println("copying " + fullpath + " to " + outpath)
 		err := Copy(fullpath+folder, outpath+folder)
@@ -761,7 +805,7 @@ func createProject(projectName string, outpath string) error {
 		}
 	}
 
-	err = replaceNameInFiles(outpath, projectName, projectReplace)
+	err = replaceTextInFiles(outpath, "skeleton", projectName)
 	if err != nil {
 		return err
 	}
