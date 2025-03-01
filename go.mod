@@ -18,7 +18,8 @@ require (
 	github.com/pinzolo/casee v0.0.0-20210416022938-38877fea886d
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stoewer/go-strcase v1.2.0
-	golang.org/x/text v0.3.2
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/mattes/migrate.v1 v1.3.2
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
