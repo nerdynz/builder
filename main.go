@@ -424,6 +424,7 @@ func initialModel() *model {
 					getDBConnection().DB.Select(&rows, `
 						select table_name from information_schema.tables
 						where table_schema = 'public'
+						order by table_name
 					`)
 					items = append(items, &item{text: "Select Tables", itemType: HEADING})
 
@@ -566,14 +567,24 @@ func main() {
 		}
 	}
 
+	if os.Getenv("DATABASE_URL") != "" {
+		isEnvPresent = true
+		argsWithoutProg := os.Args[1:]
+		if len(argsWithoutProg) > 0 {
+			logrus.Info("Setting working directory as: ", argsWithoutProg[0])
+			os.Chdir(argsWithoutProg[0])
+		}
+	}
+
 	// if err := dotenv.Load("./rpc/.env"); err == nil {
 	// 	isEnvPresent = true
 	// }
 
+	// logrus.Info(os.Getenv("DATABASE_URL"))
 	// dotenv.Load(".builder.env")
-	// if !isEnvPresent {
-	// 	logrus.Fatal("Failed to load .env file")
-	// }
+	if !isEnvPresent {
+		logrus.Fatal("Failed to load .env file")
+	}
 
 	localstate = &state{
 		actions:           make([]action, 0),
@@ -642,7 +653,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		choices := m.currentItem().items
-		if choices != nil && len(choices) > 0 {
+		if len(choices) > 0 {
 			choice := choices[m.cursor]
 
 			switch msg.String() {
@@ -797,45 +808,46 @@ func (m *model) View() string {
 func run() (err error) {
 	render := getRenderer()
 	for _, action := range localstate.actions {
-		if action == SCAFFOLD_PROJECT {
+		switch action {
+		case SCAFFOLD_PROJECT:
 			err = createProject(localstate.projectName, localstate.projectPath)
-		} else if action == CREATE_MIGRATION {
+		case CREATE_MIGRATION:
 			err = createBlankMigration(localstate.initialInputValue, render, getDBConnection())
-		} else if action == CREATE_TABLE {
+		case CREATE_TABLE:
 			err = createTable(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
-		} else if action == ADD_FIELDS {
+		case ADD_FIELDS:
 			for _, tableName := range localstate.tables {
 				err = addFields(tableName, localstate.fields(), render, getDBConnection())
 			}
-		} else if action == GENERATE_API {
+		case GENERATE_API:
 			for _, tableName := range localstate.tables {
 				err = createFeModel(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_MODEL {
+		case GENERATE_MODEL:
 			for _, tableName := range localstate.tables {
 				err = createModel(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_PROTO {
+		case GENERATE_PROTO:
 			for _, tableName := range localstate.tables {
 				err = createProto(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_RPC {
+		case GENERATE_RPC:
 			for _, tableName := range localstate.tables {
 				err = createRPC(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_REST {
+		case GENERATE_REST:
 			for _, tableName := range localstate.tables {
 				err = createRest(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_EDIT {
+		case GENERATE_EDIT:
 			for _, tableName := range localstate.tables {
 				err = createEdit(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_LIST {
+		case GENERATE_LIST:
 			for _, tableName := range localstate.tables {
 				err = createList(tableName, render, getDBConnection())
 			}
-		} else if action == GENERATE_BE {
+		case GENERATE_BE:
 			for _, tableName := range localstate.tables {
 				if err = createProto(tableName, render, getDBConnection()); err != nil {
 					return err
@@ -847,7 +859,7 @@ func run() (err error) {
 					return err
 				}
 			}
-		} else if action == GENERATE_FE {
+		case GENERATE_FE:
 			for _, tableName := range localstate.tables {
 				// if err = createFeModel(tableName, render, getDBConnection()); err != nil {
 				// 	return err
@@ -882,9 +894,9 @@ func run() (err error) {
 			// 			return err
 			// 		}
 			// 	}
-		} else if action == GENERATE_SEARCH {
+		case GENERATE_SEARCH:
 			err = createSearch(localstate.initialInputValue, localstate.fields(), render, getDBConnection())
-		} else if action == MIGRATE {
+		case MIGRATE:
 			err = doMigration(render, getDBConnection())
 		}
 	}

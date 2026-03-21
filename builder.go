@@ -136,7 +136,7 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 }
 
 func createBlankMigration(migrationName string, r *render.Render, db *runner.DB) error {
-	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), casee.ToCamelCase(migrationName))
+	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), casee.ToSnakeCase(migrationName))
 	if err != nil {
 		return err
 	}
@@ -164,17 +164,35 @@ func createFeModel(tableName string, r *render.Render, db *runner.DB) error {
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, nil, r, db, "create-fe-model", settingOrDefault("SPA_API_PATH", "./app/src/:TableNameCamel/"), ":TableNameCamel.model.tmp.ts")
+	fullPath, err := createSomething(tableName, nil, r, db, "create-fe-model", settingOrDefault("SPA_API_PATH", "./spa/src/api/"), ":TableNameCamel.model.tmp.ts")
+	if err != nil {
+		return err
+	}
+
+	_, err = os.ReadFile(fullPath)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createProto(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-proto", settingOrDefault("PROTO_PATH", "./proto/"), ":TableName.tmp.proto")
+	_, err := createSomething(tableName, nil, r, db, "create-proto", settingOrDefault("PROTO_PATH", "./proto/"), ":TableName.tmp.proto")
+	return err
 }
 
 func createModel(tableName string, r *render.Render, db *runner.DB) error {
 	createProtoAndTwirpBindings(tableName)
-	createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.tmp.go")
-	return createSomething(tableName, nil, r, db, "create-model-helper", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.go")
+	_, err := createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.tmp.go")
+	if err != nil {
+		return err
+	}
+	_, err = createSomething(tableName, nil, r, db, "create-model-helper", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.go")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // func createModel(tableName string, r *render.Render, db *runner.DB) error {
@@ -182,7 +200,11 @@ func createModel(tableName string, r *render.Render, db *runner.DB) error {
 // }
 
 func createRest(tableName string, r *render.Render, db *runner.DB) error {
-	return createSomething(tableName, nil, r, db, "create-rest", settingOrDefault("ACTIONS_PATH", "./rest/actions/"), ":TableNameCamelPlural.tmp.go")
+	_, err := createSomething(tableName, nil, r, db, "create-rest", settingOrDefault("ACTIONS_PATH", "./rest/actions/"), ":TableNameCamelPlural.tmp.go")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func createProtoAndTwirpBindings(protoNameOrTableName string) (string, error) {
@@ -190,13 +212,14 @@ func createProtoAndTwirpBindings(protoNameOrTableName string) (string, error) {
 	tableName = helpers.SnakeCase(tableName)
 	protoName := tableName + ".proto" // put it backz
 	goSrc := os.Getenv("GOPATH") + "/src"
+
 	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
 
-	// INSERT struct tags
+	// // INSERT struct tags
 	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
 	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
 
-	runCommandOrFatalInDirectory("./app", "bun", "twirpscript")
+	runCommandOrFatalInDirectory("./spa", "pnpm", "twirpscript")
 	return tableName, nil
 }
 
@@ -214,34 +237,49 @@ func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) err
 		return err
 	}
 
-	return createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go")
+	_, err = createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func createList(tableName string, r *render.Render, db *runner.DB) error {
-	// err := createSomething(tableName, nil, r, db, "create-routes", settingOrDefault("SPA_ROUTE_PATH", "./app/src/:TableNameCamel/"), ":TableNameCamel.routes.tmp.ts")
+	// err := createSomething(tableName, nil, r, db, "create-routes", settingOrDefault("SPA_ROUTE_PATH", "./spa/src/:TableNameCamel/"), ":TableNameCamel.routes.tmp.ts")
 	// if err != nil {
 	// 	return err
 	// }
-	err := createSomething(tableName, nil, r, db, "create-list-edit", settingOrDefault("SPA_ROUTE_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalListEditView.vue")
+	_, err := createSomething(tableName, nil, r, db, "create-list-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalListEdit.vue")
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalListView.vue")
+	_, err = createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalList.vue")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func createEdit(tableName string, r *render.Render, db *runner.DB) error {
-	err := createSomething(tableName, nil, r, db, "create-multiedit-line", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalMultiEditLineView.vue")
+	_, err := createSomething(tableName, nil, r, db, "create-multiedit-line", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalMultiEditLine.vue")
 	if err != nil {
 		return err
 	}
-	err = createSomething(tableName, nil, r, db, "create-multiedit", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalMultiEditView.vue")
+	_, err = createSomething(tableName, nil, r, db, "create-multiedit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalMultiEdit.vue")
 	if err != nil {
 		return err
 	}
-	return createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./app/src/pages/:TableNameCamel/sample/"), ":TableNamePascalEditView.vue")
+	if err != nil {
+		return err
+	}
+	_, err = createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalEdit.vue")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) error {
+func createSomething(tableName string, fields Fields, r *render.Render, db *runner.DB, tmpl string, path string, ext string) (string, error) {
 	bucket := newViewBucket()
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
@@ -269,14 +307,14 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	bucket.add("TableNameSnake", strcase.SnakeCase(tableName))
 	// bucket.add("TableID", tableID)
 	bucket.add("TableULID", tableULID)
-	bucket.add("TableULIDPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
-	bucket.add("TableULIDCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
-	bucket.add("TableULIDCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableULIDPascal", strings.ReplaceAll(casee.ToPascalCase(tableULID), "Ulid", "Ulid"))
+	bucket.add("TableULIDCamel", strings.ReplaceAll(casee.ToCamelCase(tableULID), "Ulid", "Ulid"))
+	bucket.add("TableULIDCamelWithRecord", "record."+strings.ReplaceAll(casee.ToCamelCase(tableULID), "Ulid", "Ulid"))
 
 	bucket.add("TableUlid", tableULID)
-	bucket.add("TableUlidPascal", strings.Replace(casee.ToPascalCase(tableULID), "Ulid", "Ulid", -1))
-	bucket.add("TableUlidCamel", strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
-	bucket.add("TableUlidCamelWithRecord", "record."+strings.Replace(casee.ToCamelCase(tableULID), "Ulid", "Ulid", -1))
+	bucket.add("TableUlidPascal", strings.ReplaceAll(casee.ToPascalCase(tableULID), "Ulid", "Ulid"))
+	bucket.add("TableUlidCamel", strings.ReplaceAll(casee.ToCamelCase(tableULID), "Ulid", "Ulid"))
+	bucket.add("TableUlidCamelWithRecord", "record."+strings.ReplaceAll(casee.ToCamelCase(tableULID), "Ulid", "Ulid"))
 
 	// populate more variables from column names
 	columns := []*ColumnInfo{}
@@ -285,20 +323,20 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 		Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName). // field excluse
 		QueryStructs(&columns)
 	if err != nil {
-		return err
+		return "", err
 	}
 	for _, col := range columns {
 		if col.DataType == "USER-DEFINED" {
 			vals := make([]string, 0)
-			err := db.SQL(`		
+			err := db.SQL(`
 			select e.enumlabel::text as enum_value
-			from pg_type t 
-				 join pg_enum e on t.oid = e.enumtypid  
+			from pg_type t
+				 join pg_enum e on t.oid = e.enumtypid
 				 join pg_catalog.pg_namespace n ON n.oid = t.typnamespace
 				where t.typname = $1
 			`, col.UDTName).QuerySlice(&vals)
 			if err != nil {
-				return err
+				return "", err
 			}
 			col.EnumValues = vals
 		}
@@ -346,7 +384,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 		Where("table_schema = $1 and column_name = $2 and column_name <> 'tsv' and table_name <> $3", "public", tableULID, tableName).
 		QueryStructs(&columns)
 	if err != nil {
-		return err
+		return "", err
 	}
 	childrenTableNames := make([]Child, 0)
 	for _, col := range columns {
@@ -363,31 +401,32 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 
 	bucket.add("Children", childrenTableNames)
 
-	folderPath := strings.Replace(path, ":TableNamePascalPlural", inflection.Plural(tableNamePascal), -1)
-	folderPath = strings.Replace(folderPath, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
-	folderPath = strings.Replace(folderPath, ":TableNamePascal", tableNamePascal, -1)
-	folderPath = strings.Replace(folderPath, ":TableNameCamel", tableNameCamel, -1)
-	folderPath = strings.Replace(folderPath, ":TableNameSnake", tableNameSnake, -1)
-	folderPath = strings.Replace(folderPath, ":TableName", tableName, -1)
+	folderPath := strings.ReplaceAll(path, ":TableNamePascalPlural", inflection.Plural(tableNamePascal))
+	folderPath = strings.ReplaceAll(folderPath, ":TableNameCamelPlural", inflection.Plural(tableNameCamel))
+	folderPath = strings.ReplaceAll(folderPath, ":TableNamePascal", tableNamePascal)
+	folderPath = strings.ReplaceAll(folderPath, ":TableNameCamel", tableNameCamel)
+	folderPath = strings.ReplaceAll(folderPath, ":TableNameSnake", tableNameSnake)
+	folderPath = strings.ReplaceAll(folderPath, ":TableName", tableName)
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
-		return err
+		return "", err
 	}
-	ext = strings.Replace(ext, ":TableNamePascalPlural", inflection.Plural(tableNamePascal), -1)
-	ext = strings.Replace(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel), -1)
-	ext = strings.Replace(ext, ":TableNamePascal", tableNamePascal, -1)
-	ext = strings.Replace(ext, ":TableNameCamel", tableNameCamel, -1)
-	ext = strings.Replace(ext, ":TableNameSnake", tableNameSnake, -1)
-	ext = strings.Replace(ext, ":TableName", tableName, -1)
-	ext = strings.Replace(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID), -1)
-	tempFileFullPath := folderPath + ext
+
+	ext = strings.ReplaceAll(ext, ":TableNamePascalPlural", inflection.Plural(tableNamePascal))
+	ext = strings.ReplaceAll(ext, ":TableNameCamelPlural", inflection.Plural(tableNameCamel))
+	ext = strings.ReplaceAll(ext, ":TableNamePascal", tableNamePascal)
+	ext = strings.ReplaceAll(ext, ":TableNameCamel", tableNameCamel)
+	ext = strings.ReplaceAll(ext, ":TableNameSnake", tableNameSnake)
+	ext = strings.ReplaceAll(ext, ":TableName", tableName)
+	ext = strings.ReplaceAll(ext, ":TableNameCamelULID", casee.ToCamelCase(tableULID))
+	fullFilePath := folderPath + ext
 
 	// resultingCodeFileAlreadyExists := true
-	notTempFileFullPath := strings.Replace(tempFileFullPath, ".tmp", "", 1)
+	notTempFileFullPath := strings.ReplaceAll(fullFilePath, ".tmp", "")
 	if _, err := os.Stat(notTempFileFullPath); os.IsNotExist(err) {
 		// resulting file won't include tmp and will be ready to use as an existing file isn't already there
 		// resultingCodeFileAlreadyExists = false
-		tempFileFullPath = notTempFileFullPath
+		fullFilePath = notTempFileFullPath
 	}
 
 	// if resultingCodeFileAlreadyExists && ignoreIfExists {
@@ -395,37 +434,35 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	// 	return nil
 	// }
 
-	fo, err := os.Create(tempFileFullPath)
+	fo, err := os.Create(fullFilePath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	template := r.TemplateLookup(tmpl)
 	if template == nil {
-		return err
+		return "", err
 	}
 	wr := bufio.NewWriter(fo)
 	err = template.Execute(wr, bucket.Data)
 	if err != nil {
-		return err
+		return "", err
 	}
 	wr.Flush()
 	// err = ioutil.WriteFile("./migrations/"+tableName+".go", buffer.Bytes(), os.ModePerm)
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	if err := fo.Close(); err != nil {
-		return err
-	}
-	if filepath.Ext(tempFileFullPath) == ".go" {
-		err := exec.Command("/opt/homebrew/bin/gofmt", "-s", "-w", tempFileFullPath).Run()
-		if err != nil {
-			return err
-		}
+		return "", err
 	}
 
-	return nil
+	if filepath.Ext(fullFilePath) == ".go" {
+		runCommandOrFatal("/opt/homebrew/bin/gofmt", "-s", "-w", fullFilePath)
+	}
+
+	return fullFilePath, nil
 }
 
 type ColumnInfo struct {
@@ -685,7 +722,7 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 		return err
 	}
 
-	if !!fi.IsDir() {
+	if fi.IsDir() {
 		return nil
 	}
 	// fmt.Println(path)
@@ -718,21 +755,21 @@ func visit(path string, name string, replacement string, fi os.FileInfo, err err
 	}
 
 	if isGoFile || isProcFile || isPackageJSON || isDotEnv || isMainTs || isGoMod {
-		read, err := ioutil.ReadFile(path)
+		read, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
 		// fmt.Println(path, replacement)
 		newContents := ""
 		if isProcFile || isPackageJSON || isDotEnv || isMainTs || isGoMod {
-			newContents = strings.Replace(string(read), "Skeleton", name, -1)
-			newContents = strings.Replace(newContents, "skeleton", name, -1)
+			newContents = strings.ReplaceAll(string(read), "Skeleton", name)
+			newContents = strings.ReplaceAll(newContents, "skeleton", name)
 		} else {
-			newContents = strings.Replace(string(read), "github.com/nerdynz/", replacement, -1)
+			newContents = strings.ReplaceAll(string(read), "github.com/nerdynz/", replacement)
 		}
 
 		if newContents != "" {
-			err = ioutil.WriteFile(path, []byte(newContents), 0)
+			err = os.WriteFile(path, []byte(newContents), 0)
 			if err != nil {
 				return err
 			}
@@ -751,7 +788,7 @@ func replaceTextInFiles(directory, oldText, newText string) error {
 		}
 
 		// Read file content
-		content, err := ioutil.ReadFile(path)
+		content, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("could not read file %s: %w", path, err)
 		}
@@ -813,10 +850,14 @@ func createProject(projectName string, outpath string) error {
 }
 
 func runCommandOrFatal(name string, arg ...string) {
-	runCommandOrFatalInDirectory("", name, arg...)
+	runCommandOrFatalInDirectoryRetry(0, "", name, arg...)
 }
 
 func runCommandOrFatalInDirectory(directory string, name string, arg ...string) {
+	runCommandOrFatalInDirectoryRetry(0, directory, name, arg...)
+}
+
+func runCommandOrFatalInDirectoryRetry(retryIndex int, directory string, name string, arg ...string) {
 	cmd := exec.Command(name, arg...)
 	if directory != "" {
 		cmd.Dir = directory
@@ -827,8 +868,13 @@ func runCommandOrFatalInDirectory(directory string, name string, arg ...string) 
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
-		logrus.Fatal(fmt.Sprint(err))
+		if retryIndex != 0 {
+			logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
+			logrus.Fatal(fmt.Sprint(err))
+		} else {
+
+			runCommandOrFatalInDirectoryRetry(1, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
+		}
 	}
 }
 

@@ -28,13 +28,23 @@ func getRenderer() *render.Render {
 	r := render.New(render.Options{
 		Directory: tmplDir,
 		Funcs: []template.FuncMap{
-			template.FuncMap{
+			{
 				"jsesc":     toJS,
 				"nextIndex": nextIndex,
+				"contains":  contains,
 			},
 		},
 	})
 	return r
+}
+
+func contains(s string, substr ...string) bool {
+	for _, substr := range substr {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
 }
 
 func getDBConnection() *runner.DB {
