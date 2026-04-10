@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 
 	"github.com/nerdynz/helpers"
 	"github.com/pinzolo/casee"
-	"github.com/sirupsen/logrus"
 
 	"bytes"
 
@@ -23,13 +23,14 @@ import (
 
 	"strings"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
 	"github.com/jaybeecave/render"
 	"github.com/jinzhu/inflection"
 	errors "github.com/kataras/go-errors"
 	runner "github.com/nerdynz/dat/sqlx-runner"
-	_ "gopkg.in/mattes/migrate.v1/driver/postgres"
-	"gopkg.in/mattes/migrate.v1/file"
-	"gopkg.in/mattes/migrate.v1/migrate"
 
 	"github.com/stoewer/go-strcase"
 )
@@ -71,7 +72,55 @@ type Field struct {
 	FieldPriority string
 }
 
+type TableInfo struct {
+	TableCatalog string `db:"table_catalog"`
+	TableSchema  string `db:"table_schema"`
+	TableName    string `db:"table_name"`
+}
+
 type Fields []Field
+
+func listFields(db *runner.DB, tableName string, ignoreTsv bool) ([]*ColumnInfo, error) {
+	// populate more variables from column names
+	columns := []*ColumnInfo{}
+	b := db.Select("column_name, data_type, is_nullable, table_name, udt_name").
+		From("information_schema.columns")
+
+	if ignoreTsv {
+		b = b.Where("table_schema = $1 and table_name = $2 and column_name <> 'tsv'", "public", tableName) // field excluse
+	} else {
+		b = b.Where("table_schema = $1 and table_name = $2", "public", tableName) // field excluse
+	}
+
+	err := b.QueryStructs(&columns)
+	if err != nil {
+		return nil, err
+	}
+	return columns, nil
+}
+
+func listTables(db *runner.DB) ([]*TableInfo, error) {
+	ti := make([]*TableInfo, 0)
+
+	err := db.SQL(`
+SELECT t.table_catalog, t.table_schema, t.table_name
+FROM information_schema.tables t
+WHERE t.table_schema = 'public'
+  AND t.table_name <> 'schema_migrations'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM pg_inherits i
+      WHERE i.inhrelid::regclass::text = t.table_name
+  )
+`).QueryStructs(&ti)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(ti, func(i, j int) bool {
+		return ti[i].TableName < ti[j].TableName
+	})
+	return ti, nil
+}
 
 func createTable(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
 	bucket := newViewBucket()
@@ -79,40 +128,52 @@ func createTable(tableName string, fields Fields, r *render.Render, db *runner.D
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), "create_"+bucket.getStr("TableName"))
+	migPath := settingOrDefault("MIGRATION_PATH", "./migrations")
+	migName := "create_" + bucket.getStr("TableName")
+	upFile, err := createMigrationFile(migPath, migName, "up")
 	if err != nil {
 		return err
 	}
-	err = migrationFromTemplate(r, "create-table", file.UpFile, bucket)
+	downFile, err := createMigrationFile(migPath, migName, "down")
 	if err != nil {
 		return err
 	}
-	err = migrationFromTemplate(r, "drop-table", file.DownFile, bucket)
+	err = migrationFromTemplate(r, "create-table", upFile, bucket)
+	if err != nil {
+		return err
+	}
+	err = migrationFromTemplate(r, "drop-table", downFile, bucket)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func createSearch(tableName string, fields Fields, r *render.Render, db *runner.DB) error {
+func createSearch(tableName string, fields Fields, r *render.Render, db *runner.DB) (string, error) {
 	bucket := newViewBucket()
 
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), "search_"+bucket.getStr("TableName"))
+	migPath := settingOrDefault("MIGRATION_PATH", "./migrations")
+	migName := "search_" + bucket.getStr("TableName")
+	upFile, err := createMigrationFile(migPath, migName, "up")
 	if err != nil {
-		return err
+		return "", err
 	}
-	err = migrationFromTemplate(r, "create-search", file.UpFile, bucket)
+	downFile, err := createMigrationFile(migPath, migName, "down")
 	if err != nil {
-		return err
+		return "", err
 	}
-	err = migrationFromTemplate(r, "drop-search", file.DownFile, bucket)
+	err = migrationFromTemplate(r, "create-search", upFile, bucket)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	err = migrationFromTemplate(r, "drop-search", downFile, bucket)
+	if err != nil {
+		return "", err
+	}
+	return upFile, nil
 }
 
 func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB) error {
@@ -120,15 +181,21 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 	bucket.add("TableName", tableName)
 	bucket.add("Fields", fields)
 
-	file, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), "fields_"+bucket.getStr("TableName"))
+	migPath := settingOrDefault("MIGRATION_PATH", "./migrations")
+	migName := "fields_" + bucket.getStr("TableName")
+	upFile, err := createMigrationFile(migPath, migName, "up")
 	if err != nil {
 		return err
 	}
-	err = migrationFromTemplate(r, "add-fields", file.UpFile, bucket)
+	downFile, err := createMigrationFile(migPath, migName, "down")
 	if err != nil {
 		return err
 	}
-	err = migrationFromTemplate(r, "remove-fields", file.DownFile, bucket)
+	err = migrationFromTemplate(r, "add-fields", upFile, bucket)
+	if err != nil {
+		return err
+	}
+	err = migrationFromTemplate(r, "remove-fields", downFile, bucket)
 	if err != nil {
 		return err
 	}
@@ -136,26 +203,60 @@ func addFields(tableName string, fields []Field, r *render.Render, db *runner.DB
 }
 
 func createBlankMigration(migrationName string, r *render.Render, db *runner.DB) error {
-	_, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), casee.ToSnakeCase(migrationName))
+
+	// _, err := migrate.Create(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"), casee.ToSnakeCase(migrationName))
+	// if err != nil {
+	// 	return err
+	// }
+
+	migPath := settingOrDefault("MIGRATION_PATH", "./migrations")
+	migName := casee.ToSnakeCase(migrationName)
+	_, err := createMigrationFile(migPath, migName, "up")
 	if err != nil {
 		return err
 	}
-	return nil
+	_, err = createMigrationFile(migPath, migName, "down")
+	return err
 }
 
 func doMigration(r *render.Render, db *runner.DB) error {
-	errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"))
-	finalError := ""
-	if ok {
-		// sweet
-	} else {
-		for _, err := range errs {
-			finalError += err.Error() + "\n"
-		}
+
+	migPath := settingOrDefault("MIGRATION_PATH", "./migrations")
+
+	wd, _ := loadEnv()
+	err := os.Chdir(wd)
+	if err != nil {
+		return err
 	}
-	if finalError != "" {
-		return errors.New(finalError)
+
+	driver, err := postgres.WithInstance(db.DB.DB, &postgres.Config{})
+	if err != nil {
+		return err
 	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file:///"+migPath,
+		"postgres", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil {
+		return err
+	}
+
+	// errs, ok := migrate.UpSync(os.Getenv("DATABASE_URL")+"?sslmode=disable", settingOrDefault("MIGRATION_PATH", "./migrations"))
+	// finalError := ""
+	// if ok {
+	// 	// sweet
+	// } else {
+	// 	for _, err := range errs {
+	// 		finalError += err.Error() + "\n"
+	// 	}
+	// }
+	// if finalError != "" {
+	// 	return errors.New(finalError)
+	// }
 	return nil
 }
 
@@ -182,17 +283,21 @@ func createProto(tableName string, r *render.Render, db *runner.DB) error {
 	return err
 }
 
-func createModel(tableName string, r *render.Render, db *runner.DB) error {
+func createModel(tableName string, r *render.Render, db *runner.DB) ([]string, error) {
 	createProtoAndTwirpBindings(tableName)
-	_, err := createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.tmp.go")
+
+	paths := make([]string, 0)
+	path, err := createSomething(tableName, nil, r, db, "create-model", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.tmp.go")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = createSomething(tableName, nil, r, db, "create-model-helper", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.go")
+	paths = append(paths, path)
+	path, err = createSomething(tableName, nil, r, db, "create-model-helper", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.helper.go")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	paths = append(paths, path)
+	return paths, nil
 }
 
 // func createModel(tableName string, r *render.Render, db *runner.DB) error {
@@ -208,52 +313,73 @@ func createRest(tableName string, r *render.Render, db *runner.DB) error {
 }
 
 func createProtoAndTwirpBindings(protoNameOrTableName string) (string, error) {
+	wd, err := loadEnv()
+	if err != nil {
+		return "", err
+	}
 	tableName := strings.ReplaceAll(protoNameOrTableName, ".proto", "")
 	tableName = helpers.SnakeCase(tableName)
-	protoName := tableName + ".proto" // put it backz
-	goSrc := os.Getenv("GOPATH") + "/src"
+	protoName := "proto/" + tableName + ".proto" // put it backz
+	// goSrc := os.Getenv("GOPATH") + "/src"
 
-	runCommandOrFatal("/opt/homebrew/bin/protoc", "--proto_path", "./proto", "--go_out", goSrc, "--twirp_out", goSrc, protoName)
+	// return "", errors.New(wd)
+
+	rpcPath := "rpc/" + helpers.SnakeCase(tableName) + "/"
+	if err = os.MkdirAll(filepath.Join(wd, rpcPath), 0755); err != nil {
+		return "", err
+	}
+
+	err = runCommandOrErrorInDirectory(wd, "/opt/homebrew/bin/protoc", "--proto_path", "proto", "--go_out", rpcPath, "--go_opt", "paths=source_relative", "--twirp_out", rpcPath, "--twirp_opt", "paths=source_relative", protoName)
+	if err != nil {
+		return "", err
+	}
 
 	// // INSERT struct tags
-	resultingProto := "./rpc/" + helpers.SnakeCase(tableName) + "/" + helpers.SnakeCase(tableName) + ".pb.go"
-	runCommandOrFatal("protoc-go-inject-tag", "-input="+resultingProto)
-
-	runCommandOrFatalInDirectory("./spa", "pnpm", "twirpscript")
+	resultingProto := strings.Replace("./rpc/"+helpers.SnakeCase(tableName)+"/"+helpers.SnakeCase(tableName)+".pb.go", "./", wd, -1)
+	err = runCommandOrError("protoc-go-inject-tag", "-input="+resultingProto)
+	if err != nil {
+		return "", err
+	}
+	err = runCommandOrErrorInDirectory(wd+"/spa", "pnpm", "twirpscript")
+	if err != nil {
+		return "", err
+	}
 	return tableName, nil
 }
 
-func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) error {
-	// if _, err := os.Stat("./proto/:TableName.proto"); os.IsNotExist(err) {
-	// 	err := createProto(tableName, r, db)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	// protoName := tableName + ".proto"
+func createRPC(protoNameOrTableName string, r *render.Render, db *runner.DB) (string, error) {
 	tableName, err := createProtoAndTwirpBindings(protoNameOrTableName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, err = createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go")
+	fname, err := createSomething(tableName, nil, r, db, "create-rpc", settingOrDefault("RPC_PATH", "./rpc/:TableNameSnake/"), ":TableNameSnake.rpc.tmp.go")
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return fname, nil
 }
 
-func createList(tableName string, r *render.Render, db *runner.DB) error {
+func createList(tableName string, r *render.Render, db *runner.DB) (string, error) {
+	// err := createSomething(tableName, nil, r, db, "create-routes", settingOrDefault("SPA_ROUTE_PATH", "./spa/src/:TableNameCamel/"), ":TableNameCamel.routes.tmp.ts")
+	// if err != nil {
+	// 	return err
+	// }
+
+	// fullFilePath, err := createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalList.vue")
+	fullFilePath, err := createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./tmp/"), ":TableNamePascalList.vue")
+	if err != nil {
+		return "", err
+	}
+	return fullFilePath, nil
+}
+
+func createListEdit(tableName string, r *render.Render, db *runner.DB) error {
 	// err := createSomething(tableName, nil, r, db, "create-routes", settingOrDefault("SPA_ROUTE_PATH", "./spa/src/:TableNameCamel/"), ":TableNameCamel.routes.tmp.ts")
 	// if err != nil {
 	// 	return err
 	// }
 	_, err := createSomething(tableName, nil, r, db, "create-list-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalListEdit.vue")
-	if err != nil {
-		return err
-	}
-	_, err = createSomething(tableName, nil, r, db, "create-list", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalList.vue")
 	if err != nil {
 		return err
 	}
@@ -325,6 +451,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	if err != nil {
 		return "", err
 	}
+
 	for _, col := range columns {
 		if col.DataType == "USER-DEFINED" {
 			vals := make([]string, 0)
@@ -459,7 +586,7 @@ func createSomething(tableName string, fields Fields, r *render.Render, db *runn
 	}
 
 	if filepath.Ext(fullFilePath) == ".go" {
-		runCommandOrFatal("/opt/homebrew/bin/gofmt", "-s", "-w", fullFilePath)
+		runCommandOrError("/opt/homebrew/bin/gofmt", "-s", "-w", fullFilePath)
 	}
 
 	return fullFilePath, nil
@@ -690,20 +817,19 @@ func (colInfo *ColumnInfo) InputControlType() string {
 	return ""
 }
 
-func migrationFromTemplate(r *render.Render, templateName string, file *file.File, data *viewBucket) error {
+func migrationFromTemplate(r *render.Render, templateName string, filePath string, data *viewBucket) error {
 	template := r.TemplateLookup(templateName)
-	buffer := bytes.NewBuffer(file.Content)
-	wr := bufio.NewWriter(buffer)
 	if template == nil {
 		return errors.New("couldn't find the correct template")
 	}
-
+	var buffer bytes.Buffer
+	wr := bufio.NewWriter(&buffer)
 	err := template.Execute(wr, data)
 	if err != nil {
 		return err
 	}
 	wr.Flush()
-	err = ioutil.WriteFile(file.Path+"/"+file.FileName, buffer.Bytes(), os.ModePerm)
+	err = ioutil.WriteFile(filePath, buffer.Bytes(), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -849,15 +975,15 @@ func createProject(projectName string, outpath string) error {
 	return nil
 }
 
-func runCommandOrFatal(name string, arg ...string) {
-	runCommandOrFatalInDirectoryRetry(0, "", name, arg...)
+func runCommandOrError(name string, arg ...string) error {
+	return runCommandOrErrorInDirectoryRetry(0, "", name, arg...)
 }
 
-func runCommandOrFatalInDirectory(directory string, name string, arg ...string) {
-	runCommandOrFatalInDirectoryRetry(0, directory, name, arg...)
+func runCommandOrErrorInDirectory(directory string, name string, arg ...string) error {
+	return runCommandOrErrorInDirectoryRetry(0, directory, name, arg...)
 }
 
-func runCommandOrFatalInDirectoryRetry(retryIndex int, directory string, name string, arg ...string) {
+func runCommandOrErrorInDirectoryRetry(retryIndex int, directory string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	if directory != "" {
 		cmd.Dir = directory
@@ -869,19 +995,24 @@ func runCommandOrFatalInDirectoryRetry(retryIndex int, directory string, name st
 	err := cmd.Run()
 	if err != nil {
 		if retryIndex != 0 {
-			logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
-			logrus.Fatal(fmt.Sprint(err))
+			// logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
+			// logrus.Fatal(fmt.Sprint(err))
+			return errors.New(stderr.String() + fmt.Sprint(err))
 		} else {
-
-			runCommandOrFatalInDirectoryRetry(1, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
+			return runCommandOrErrorInDirectoryRetry(1, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
 		}
 	}
+	return nil
 }
 
 func settingOrDefault(key string, dflt string) string {
+	wd, err := loadEnv()
+	if err != nil {
+		return ""
+	}
 	v := os.Getenv(key)
 	if v == "" {
-		return dflt
+		v = dflt
 	}
-	return v
+	return strings.Replace(v, "./", wd, -1)
 }
