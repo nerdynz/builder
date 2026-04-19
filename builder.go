@@ -395,9 +395,6 @@ func createEdit(tableName string, r *render.Render, db *runner.DB) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	_, err = createSomething(tableName, nil, r, db, "create-edit", settingOrDefault("SPA_VIEW_PATH", "./spa/src/:TableNameCamel/sample/"), ":TableNamePascalEdit.vue")
 	if err != nil {
 		return err
@@ -976,14 +973,14 @@ func createProject(projectName string, outpath string) error {
 }
 
 func runCommandOrError(name string, arg ...string) error {
-	return runCommandOrErrorInDirectoryRetry(0, "", name, arg...)
+	return runCommandOrErrorInDirectoryRetry(nil, "", name, arg...)
 }
 
 func runCommandOrErrorInDirectory(directory string, name string, arg ...string) error {
-	return runCommandOrErrorInDirectoryRetry(0, directory, name, arg...)
+	return runCommandOrErrorInDirectoryRetry(nil, directory, name, arg...)
 }
 
-func runCommandOrErrorInDirectoryRetry(retryIndex int, directory string, name string, arg ...string) error {
+func runCommandOrErrorInDirectoryRetry(retryErr error, directory string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	if directory != "" {
 		cmd.Dir = directory
@@ -994,12 +991,12 @@ func runCommandOrErrorInDirectoryRetry(retryIndex int, directory string, name st
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		if retryIndex != 0 {
+		if retryErr != nil {
 			// logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
 			// logrus.Fatal(fmt.Sprint(err))
-			return errors.New(stderr.String() + fmt.Sprint(err))
+			return errors.New(stderr.String() + "afterRetryErr" + fmt.Sprint(err) + ". originalErr: " + fmt.Sprint(retryErr))
 		} else {
-			return runCommandOrErrorInDirectoryRetry(1, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
+			return runCommandOrErrorInDirectoryRetry(err, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
 		}
 	}
 	return nil

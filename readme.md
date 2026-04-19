@@ -1,7 +1,7 @@
 # Builder - WIP
-Builder is designed to quickly scaffold boilerplate code files using templates. 
+Builder is designed to quickly scaffold boilerplate code files using templates. Now with *AI*
 
-It simply connects to the database defined in .env and fills in the tmpl files in the blueprints folder with varients of field names.
+It simply connects to the database defined in `.builder.env` and fills in the tmpl files in the blueprints folder with varients of field names.
 
 ## Available field names
 
@@ -74,5 +74,3 @@ e.g.
 `timestamp` becomes `Date` in javascript but `time.Time` in go
 
 This utility doesn't need to be specific to go or javascript, so configuration needs to provide that flexiblity (we are just outputting strings.... its not hard)
-
-
