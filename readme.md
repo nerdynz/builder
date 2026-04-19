@@ -3,6 +3,15 @@ Builder is designed to quickly scaffold boilerplate code files using templates. 
 
 It simply connects to the database defined in `.builder.env` and fills in the tmpl files in the blueprints folder with varients of field names.
 
+## Required libraries
+
+```
+protobuf // e.g. brew reinstall protobuf
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go install github.com/favadi/protoc-go-inject-tag@latest
+```
+
 ## Available field names
 
 - TableName `person` `image_meta`
