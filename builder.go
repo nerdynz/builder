@@ -994,7 +994,7 @@ func runCommandOrErrorInDirectoryRetry(retryErr error, directory string, name st
 		if retryErr != nil {
 			// logrus.Error("\n" + name + " Failed to run!\n" + stderr.String())
 			// logrus.Fatal(fmt.Sprint(err))
-			return errors.New(stderr.String() + "afterRetryErr" + fmt.Sprint(err) + ". originalErr: " + fmt.Sprint(retryErr))
+			return errors.New("Err with cmd [" + cmd.String() + "]: stderr: " + stderr.String() + "retryErr: " + fmt.Sprint(retryErr) + ". originalErr: " + fmt.Sprint(err))
 		} else {
 			return runCommandOrErrorInDirectoryRetry(err, directory, strings.ReplaceAll(name, "opt/homebrew/bin", "usr/bin"), arg...)
 		}
